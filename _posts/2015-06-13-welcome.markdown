@@ -1,0 +1,10 @@
+---
+layout: post
+title:  "First Post"
+date:   2015-06-13 00:23:53
+---
+Welcome to my first post. I plan on putting some articles up here about software development.
+
+For now, let's just get this [Jekyll][jekyll] site up and running and call it a night.
+
+[jekyll]:      http://jekyllrb.com
