@@ -4,4 +4,11 @@ title: About
 permalink: /about/
 ---
 
-My name is Taylor Wood. I write software for a living. This is a place for me to write things down.
+My programming journey began in sixth grade with [QBasic](https://en.wikipedia.org/wiki/QBasic).
+
+{% highlight basic %}
+CLS
+PRINT "Hello World"
+{% endhighlight %}
+
+I've been trying to become a better programmer ever since.
