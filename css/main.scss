@@ -15,7 +15,8 @@ $spacing-unit:     30px;
 
 $text-color:       #333;
 $background-color: #f3f3f3;
-$brand-color:      #2a7ae2;
+$brand-color:      #91e842;
+$complement-color: #df1d5b;
 
 $grey-color:       #828282;
 $grey-color-light: lighten($grey-color, 40%);
@@ -42,6 +43,17 @@ $on-laptop:        800px;
     }
 }
 
+
+@mixin linear-gradient($fromColor, $toColor) {
+  background-color: $toColor; /* Fallback Color */
+  background-image: -webkit-gradient(linear, left top, left bottom, from($fromColor), to($toColor)); /* Saf4+, Chrome */
+  background-image: -webkit-linear-gradient(top, $fromColor, $toColor); /* Chrome 10+, Saf5.1+, iOS 5+ */
+  background-image:    -moz-linear-gradient(top, $fromColor, $toColor); /* FF3.6 */
+  background-image:     -ms-linear-gradient(top, $fromColor, $toColor); /* IE10 */
+  background-image:      -o-linear-gradient(top, $fromColor, $toColor); /* Opera 11.10+ */
+  background-image:         linear-gradient(top, $fromColor, $toColor);
+  filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0,StartColorStr='#{$fromColor}', EndColorStr='#{$toColor}');
+}
 
 
 // Import partials from `sass_dir` (defaults to `_sass`)
