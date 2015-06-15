@@ -13,6 +13,7 @@ layout: default
 
         <h2>
           <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
+          <p style="font-size: 0.8em">{{ post.content | strip_html | truncatewords:25}}</p>
         </h2>
       </li>
     {% endfor %}
