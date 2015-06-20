@@ -14,7 +14,7 @@ Get all the F# code for this post [here](https://github.com/taylorwood/ADRDemo).
 
 At a previous job, I was faced with a problem of [document classification](https://en.wikipedia.org/wiki/Document_classification). Workers were poring over huge files, page by page, manually building a table of contents for each one. It took a long time to train workers on how to classify these documents, and even the best workers were inconsistent. There was no good way to scale the operation.
 
-We needed a system that could ingest large files, each with thousands of pages of text, and automatically classify each individual document they contained. I knew there had to be a way to teach a computer how to recognize this stuff. This was a new frontier for me, so I started reading a lot of wikipedia articles and thought really hard.
+We needed a system that could ingest large files, each with thousands of pages of text, and automatically classify each individual document they contained. I knew there had to be a way to teach a computer how to recognize this stuff. This was a new frontier for me, so I started reading a lot of wikipedia articles and thinking really hard.
 
 ## Training data
 
@@ -93,4 +93,4 @@ let getTermFreqs words = words |> Seq.countBy (fun w -> w)
 
 ## Take a breather
 
-In the next post we'll discuss why term frequencies alone may not be sufficient, and how we can supplement them. Then we'll start putting this training data to work!
+In the [next post]({% post_url 2015-06-19-text-classification-2 %}) we'll discuss why term frequencies alone may not be sufficient, and how we can supplement them. Then we'll start putting this training data to work!
