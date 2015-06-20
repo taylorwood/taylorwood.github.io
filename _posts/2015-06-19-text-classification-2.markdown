@@ -2,9 +2,9 @@
 layout: post
 title:  "Simple text classification with a little F# (Part 2)"
 date:   2015-06-19 21:19
-tags:	machine learning text classification
+tags:	machine learning text classification term frequency inverse document frequency tfidf
 ---
-In my [last post]({% post_url 2015-06-15-text-classification %}), I laid out the basics for calculating term frequencies from text documents.
+My [previous post]({% post_url 2015-06-15-text-classification %}) laid out the basics for calculating term frequencies from text documents. This post will describe a method for supplementing term frequency that will make it more useful.
 
 ## Why term frequency is not enough
 

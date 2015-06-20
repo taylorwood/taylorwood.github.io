@@ -2,11 +2,11 @@
 layout: post
 title:  "Simple text classification with a little F# (Part 1)"
 date:   2015-06-15 09:13
-tags:	machine learning text classification
+tags:	machine learning text classification term frequency
 ---
-In this series I'll describe a simple recipe for text classification. Some of the basic techniques here can still be applied and built upon for more sophisticated classification techniques.
+In this series I'll describe a simple recipe for text classification. We'll start with some text classification basics.
 
-Get all the F# code for this post [here](https://github.com/taylorwood/ADRDemo).
+Get all the F# code for this series [here](https://github.com/taylorwood/ADRDemo).
 
 > Disclaimer: There are many great [off-the-shelf](https://code.google.com/p/word2vec/) [packages](http://scikit-learn.org/stable/tutorial/text_analytics/working_with_text_data.html) available for machine learning and text classification, and you'd be better served using those rather than rolling your own. This post is mostly intended to be an easy-to-understand tutorial on text classification.
 
