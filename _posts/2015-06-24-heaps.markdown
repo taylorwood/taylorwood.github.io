@@ -1,0 +1,227 @@
+---
+layout: post
+title:  "Coding interview minutiae grows on trees"
+date:   2015-06-24 15:39:00
+---
+The author of Homebrew was recently asked to "invert a binary tree" during a Google interview. Well, I guess he couldn't do it, he didn't get the job, and many a blogger [cried foul](http://www.jasq.org/just-another-scala-quant/inverting-binary-trees-considered-harmful) at the pitiful state of technical interviews. I agree that coding interviews can be arbitrary and asinine. But I couldn't help myself. I had to take the [binary tree](https://en.wikipedia.org/wiki/Binary_tree) challenge to validate my existence as a programmer.
+
+## Do what now?
+
+Technical interview questions are often vague by design --- the interviewer wants you to ask clarifying questions and get a feel for your approach to problem solving. If your first question is "what be this binary tree witchcraft?", then the smugly satisfied interviewer can start checking his email or whatever while you fumble with dry erase markers or perhaps slowly back out of the room.
+
+My first question to the interviewer would've been "what do you mean by invert?" I don't have a Googler sitting across the table from me right now, so I'll assume the worst.
+
+Maybe this was a problem of converting a max-heap to a min-heap, or vice versa. If that assumption held, I probably would've turned a shade or two whiter than the board whilst trying to derive heap sort from memory. Thankfully I can crank out some mediocre F# solution in my spare time, without the heart palpitations.
+
+### Tree climbing
+
+I'd ask if the input tree would be represented in array form, and of course it would because the Googler likes fast random access and [cache locality](http://stackoverflow.com/a/12065801). But if we want to visually represent the array as a tree, we should define a `Tree` type:
+{% highlight fsharp %}
+type Tree<'a> =
+    | Leaf of 'a
+    | Node of Tree<'a> * Tree<'a>
+{% endhighlight %}
+
+This can represent a tree but it requires each node to have two children --- it doesn't cover the case where a Node has only one child. Let's try a different definition:
+{% highlight fsharp %}
+type Tree<'a> =
+    | Nub
+    | Node of 'a * Tree<'a> * Tree<'a>
+{% endhighlight %}
+
+This one can represent the case where a `Node` has only one child, i.e. `Node(1, 2, Nub)` where `1` is the parent and `2` is the left child. In the case where single-child `Node` children must be to the left, this definition unfortunately allows invalid state to be represented, i.e. `Node(1, Nub, 2)`.
+
+A definition like the following might make that invalid state unrepresentable:
+{% highlight fsharp %}
+type Tree<'a> =
+    | Leaf of 'a
+    | Node of Tree<'a> * Tree<'a> option
+{% endhighlight %}
+
+But we'll go with the second `Tree` definition because `Nub` sounds cool and I'm not too concerned about the strictness because we know we're building the tree correctly, right?
+
+#### Indexing into a binary heap array
+
+Since we're assuming an array representation, we need to be able to find the indices of children of any given node. Imagine a binary tree consisting of one parent `1`, a left child `2` and a right child `3`. This would be an array `[1, 2, 3]`. Simple enough, but how do you arrange elements when you have more than three nodes? You could read the [dense Wikipedia explanation](https://en.wikipedia.org/wiki/Binary_heap#Derivation_of_index_equations) for this, or you could define these two functions:
+{% highlight fsharp %}
+/// Gets the array index of an element's left child node
+let inline leftLeaf n = (n * 2) + 1
+/// Gets the array index of an element's right child node
+let inline rightLeaf n = (leftLeaf n) + 1
+{% endhighlight %}
+Here we are saying that a node's left child node can be found by doubling the node's array index and adding 1, and the left child's sibling is always its direct successor.
+
+#### Growing the tree
+
+Now we can write a function that takes an array and builds a `Tree`:
+{% highlight fsharp %}
+let treeify (a:_[]) =
+    let rec loop pos =
+        match (pos, a.Length) with
+        | BranchesBoth ->
+            let leftBranch = loop (leftLeaf pos)
+            let rightBranch = loop (rightLeaf pos)
+            Node(a.[pos], leftBranch, rightBranch)
+        | BranchesLeft ->
+            let leftBranch = loop (leftLeaf pos)
+            Node(a.[pos], leftBranch, Nub)
+        | IsLeaf -> Node(a.[pos], Nub, Nub)
+    loop 0
+{% endhighlight %}
+
+Here we are recursively constructing the tree from top (`loop 0`) to bottom. Notice the use of pattern matching to determine how we descend the tree. You could implement this function without pattern matching, but it wouldn't look as pretty and you wouldn't feel as smart. This is the definition for the pattern:
+{% highlight fsharp %}
+let (|IsLeaf|BranchesLeft|BranchesBoth|) (pos, len) =
+    if rightLeaf pos < len then
+        BranchesBoth
+    else if leftLeaf pos < len then
+        BranchesLeft
+    else
+        IsLeaf
+{% endhighlight %}
+This pattern defines the three ways in which our tree can grow from the current `pos`:
+
+1. Current node has two children
+2. Current node has only one (left) child
+3. Current node has no children
+
+Let's put it to the test against a randomly generated array:
+{% highlight fsharp %}
+let rng = new Random()
+let values = [| for n in 1 .. 10 -> rng.Next 100 |]
+
+let tree = treeify values
+{% endhighlight %}
+
+You might see some output like this:
+{% highlight fsharp %}
+val values : int [] = [|80; 60; 56; 7; 3; 4; 89; 79; 71; 19|]
+val tree : Tree<int> =
+  Node
+    (80,
+     Node
+       (60,Node (7,Node (79,Nub,Nub),Node (71,Nub,Nub)),
+        Node (3,Node (19,Nub,Nub),Nub)),
+     Node (56,Node (4,Nub,Nub),Node (89,Nub,Nub)))
+{% endhighlight %}
+
+You could say this tree is only slightly more readable than the array representation. Let's write a function to pretty print our tree:
+{% highlight fsharp %}
+let prettyPrint tree =
+    let rec loop tree depth =
+        let vine = String('-', depth)
+        match tree with
+        | Node (n, l, r) ->
+            printfn "|%s%A" vine n
+            loop l (depth + 1)
+            loop r (depth + 1)
+        | Nub -> ignore()
+    loop tree 0
+{% endhighlight %}
+
+A little more pattern matching and recursion produces a tree that wouldn't exactly impress Bob Ross, but it's intelligible:
+{% highlight fsharp %}
+|80
+|-60
+|--7
+|---79
+|---71
+|--3
+|---19
+|-56
+|--4
+|--89
+{% endhighlight %}
+
+### Sorting the tree
+
+We've been working backwards and probably won't be getting a "yes" from the interviewer, but we can't stop now. Let's write heapsort in F#. First we'll need a function to "heapify" sections of our array:
+{% highlight fsharp %}
+let heapify (a:_[]) cmp start len =
+    let rec loop node =
+        let left = leftLeaf node
+        if left < len then
+            let child = pickBestChild a node cmp len
+            if cmp a.[node] a.[child] < 0 then
+                swap a node child
+                loop child
+    loop start
+{% endhighlight %}
+
+We descend the tree node by node, checking to make sure it's in heap order. If we find that a node's child outranks its parent, we swap them. `cmp` is a function that compares two values and returns -1, 0, or 1; this predicate is what will determine whether we're building a min- or max-heap. Let's define some of the functions that `heapify` uses:
+
+{% highlight fsharp %}
+/// Picks the child index of an element satisfying the comparator
+let inline pickBestChild (a:_[]) n cmp len =
+    let left = leftLeaf n
+    let right = rightLeaf n
+    if right < len && cmp a.[left] a.[right] < 0 then
+        right
+    else
+        left
+        
+/// Swaps two elements of an array
+let swap (a:_[]) i j =
+    let temp = a.[i]
+    a.[i] <- a.[j]
+    a.[j] <- temp
+    
+let cmp<'a> x y = Comparer<'a>.Default.Compare(x, y)
+{% endhighlight %}
+
+Without further ado, a function to do the actual sort:
+{% highlight fsharp linenos=table %}
+let heapSort (a:_[]) cmp =
+    let len = a.Length
+    let heapify = heapify a cmp
+    let lastParent = (len / 2) - 1
+    for node = lastParent downto 0 do
+        heapify node len
+    for lastNode = len - 1 downto 1 do
+        swap a lastNode 0
+        heapify 0 lastNode
+{% endhighlight %}
+
+On line 3 we partially apply the heapify function with the arguments that will stay the same, creating a shorthand for slightly easier reading. On line 4 we're calculating the index of the last parent node in the array. On lines 5 and 6 we run a loop that heapifies every node from the last parent up to the first node of the tree. This has the effect of iteratively pushing the min (or max, depending on your `cmp` function) value to the top of the heap.
+
+On lines 7 -- 9 we take advantage of the heap property that the min (or max) value is always at the top of the heap. We can produce a sorted array by taking the value off the top of the heap and putting it on the bottom, then re-heapifying everything else above it... over and over again.
+
+{% highlight fsharp %}
+heapSort values cmp
+printfn "%A" values
+
+let tree = treeify values
+prettyPrint tree
+{% endhighlight %}
+
+Our output now shows a sorted array and [binary heap](https://en.wikipedia.org/wiki/Binary_heap) tree: 
+
+{% highlight fsharp %}
+[|5; 15; 31; 37; 44; 45; 53; 55; 56; 82|]
+|5
+|-15
+|--37
+|---55
+|---56
+|--44
+|---82
+|-31
+|--45
+|--53
+{% endhighlight %}
+
+You can put a `printfn "%A" a` statement in each iteration of those loops to visualize how this is working step-by-step, or even `prettyPrint (treeify a)` to draw the tree at each iteration.
+
+### Don't leave me now!
+
+At this point the interviewer has probably gone home. That's too bad for him, because we're about to invert this binary heap by changing just one line:
+
+{% highlight fsharp %}
+let cmp<'a> x y = Comparer<'a>.Default.Compare(x, y) * -1 // ooooh!
+{% endhighlight %}
+
+Invert the `cmp` function and `heapSort` will give you the inverse of your binary heap tree --- if that's even what the interviewer meant by *inverting*.
+
+## Other interpretations
+
+There's a [second interpretation](https://leetcode.com/problems/invert-binary-tree/) that says the desired solution is to simply swap the left and right nodes recursively, creating a mirror image of the tree. It seems like they would've said to reverse, mirror, or flip the tree instead, but whatever. Creating a mirrored tree would require just one function that recurses from the root node, swapping left and right nodes.
