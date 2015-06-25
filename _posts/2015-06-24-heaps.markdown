@@ -225,3 +225,18 @@ Invert the `cmp` function and `heapSort` will give you the inverse of your binar
 ## Other interpretations
 
 There's a [second interpretation](https://leetcode.com/problems/invert-binary-tree/) that says the desired solution is to simply swap the left and right nodes recursively, creating a mirror image of the tree. It seems like they would've said to reverse, mirror, or flip the tree instead, but whatever. Creating a mirrored tree would require just one function that recurses from the root node, swapping left and right nodes.
+
+We can do that with a recursive fold function:
+{% highlight fsharp %}
+let invert tree =
+    let rec fold tree acc =
+        match tree with
+        | Node(v, l, r) -> Node(v, fold r tree, fold l tree)
+        | Nub -> tree
+    fold tree Nub
+
+let inverted = invert tree
+prettyPrint inverted
+{% endhighlight %}
+
+`invert` kicks the `fold` off with just a `Nub`, pattern matches on `Nodes`, and generates new `Nodes` which call `fold` recursively with the left and right children swapped.
