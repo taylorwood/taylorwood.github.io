@@ -71,4 +71,4 @@ Thanks to TF-IDF, common terms will now carry less weight in our model.
 
 ## Next steps
 
-We've got the TF-IDF feature extraction covered. In the next post we'll start comparing our extracted features to build a working classifier!
+We've got the TF-IDF feature extraction covered. In the [next post]({% post_url 2015-06-27-text-classification-3 %}) we'll start comparing our extracted features to build a working classifier!
