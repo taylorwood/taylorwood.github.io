@@ -6,6 +6,8 @@ tags:	markov chain text generator
 ---
 A [Markov chain](https://en.wikipedia.org/wiki/Markov_chain) is series of random transitions from one state to another, with no regard to previous state. This idea has [plenty of applications](https://en.wikipedia.org/wiki/Markov_chain#Applications), one of them happens to be generating weird text, and we'll do just that in this post.
 
+The accompanying F# library project is [here](https://github.com/taylorwood/FsMarkov).
+
 ## Judging a book by every word between its covers
 
 Imagine we have a large book, made of sentences, made of words. If we consider this book to be a sequence of words and word transitions, we can imagine building a Markov model from it.
