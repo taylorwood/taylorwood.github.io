@@ -70,7 +70,7 @@ let mapBuilder map words = bisectWords words ||> updateMap map
 let buildMap = Seq.fold mapBuilder Map.empty
 {% endhighlight %}
 
-In an imperative language this might be written as an iterative loop that modifies a mutable dictionary, and we could do that in F#, but this is more of a recursive solution using immutable data structures. Hopefully the compiler still optimizes this routine to be iterative so it won't overflow the stack!
+In an imperative language this might be written as an iterative loop that modifies a mutable dictionary, and we have that option in F#, but this approach uses immutable data structures.
 
 Let's actually construct the map, which shouldn't take more than a second:
 {% highlight fsharp %}
