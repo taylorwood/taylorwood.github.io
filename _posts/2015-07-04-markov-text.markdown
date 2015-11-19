@@ -4,7 +4,7 @@ title:  "Markov chain text generation in F#"
 date:   2015-07-04 23:11:00
 tags:	markov chain text generator
 ---
-A [Markov chain](https://en.wikipedia.org/wiki/Markov_chain) is series of random transitions from one state to another, with no regard to previous state. This idea has [plenty of applications](https://en.wikipedia.org/wiki/Markov_chain#Applications), one of them happens to be generating weird text, and we'll do just that in this post.
+A [Markov chain](https://en.wikipedia.org/wiki/Markov_chain) models a series of random transitions from one state to another, with the next state depending only on the current state. This idea has [plenty of applications](https://en.wikipedia.org/wiki/Markov_chain#Applications), one of them happens to be generating weird text, and we'll do just that in this post.
 
 The accompanying F# library project is [here](https://github.com/taylorwood/FsMarkov).
 
