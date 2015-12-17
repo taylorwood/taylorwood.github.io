@@ -4,9 +4,9 @@ title:  "Generating Markov text from YouTube comments"
 date:   2015-12-17 09:08:00
 tags:	markov chain text generator YouTube comments web scraping
 ---
-*I've left some uninteresting but important bits of code out for brevity. All the code for this post can be found on [GitHub](https://github.com/taylorwood/YouTudes).*
-
 Let's build on my post from a few months ago about [generating weird text with Markov chains]({% post_url 2015-07-04-markov-text %}). This post will focus on a purely [GIGO](https://en.wikipedia.org/wiki/Garbage_in,_garbage_out) workflow — instead of feeding our Markov text generator with literary classics, we're going to feed it [YouTube comments](http://www.newyorker.com/humor/daily-shouts/comments-feeling-youtube).
+
+*I've left some uninteresting but important bits of code out for brevity. All the code for this post can be found on [GitHub](https://github.com/taylorwood/YouTudes).*
 
 ## Request for comments
 Our plan is to scrape the comment text from videos that are returned for a given search query. We can use the very convenient HTTP functionality in [F# Data](http://fsharp.github.io/FSharp.Data/) for working with [YouTube.com](https://www.youtube.com).
