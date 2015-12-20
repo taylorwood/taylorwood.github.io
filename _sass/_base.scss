@@ -122,9 +122,9 @@ blockquote {
 pre,
 code {
     font-size: 15px;
-    border: 1px solid $grey-color-light;
-    border-radius: 3px;
-    background-color: #eef;
+    border-radius: 4px;
+    background-color: #132f39;
+    color: #64e9f4;
 }
 
 code {
@@ -140,6 +140,10 @@ pre {
         padding-right: 0;
         padding-left: 0;
     }
+}
+
+.linenos {
+    line-height: 115%
 }
 
 

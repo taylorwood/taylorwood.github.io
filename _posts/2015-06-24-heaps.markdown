@@ -3,19 +3,19 @@ layout: post
 title:  "Coding interview minutiae grows on trees"
 date:   2015-06-24 15:39:00
 ---
-The author of Homebrew was recently asked to "invert a binary tree" during a Google interview. Well, I guess he couldn't do it, he didn't get the job, and many a blogger [cried foul](http://www.jasq.org/just-another-scala-quant/inverting-binary-trees-considered-harmful) at the pitiful state of technical interviews. I agree that coding interviews can be arbitrary and asinine. But I couldn't help myself. I had to take the [binary tree](https://en.wikipedia.org/wiki/Binary_tree) challenge to validate my existence as a programmer.
+The author of Homebrew was recently asked to "invert a binary tree" during a Google interview. Well, he didn't get the job, and many a blogger [cried foul](http://www.jasq.org/just-another-scala-quant/inverting-binary-trees-considered-harmful) at the pitiful state of technical interviews. I agree that coding interviews can be arbitrary and asinine -- but I couldn't help myself. I had to take the [binary tree](https://en.wikipedia.org/wiki/Binary_tree) challenge to validate my existence as a programmer.
 
 ## Do what now?
 
-Technical interview questions are often vague by design --- the interviewer wants you to ask clarifying questions and get a feel for your approach to problem solving. If your first question is "what be this binary tree witchcraft?", then the smugly satisfied interviewer can start checking his email or whatever while you fumble with dry erase markers or perhaps slowly back out of the room.
+Technical interview questions are often vague by design: the interviewer wants you to ask clarifying questions and get a feel for your approach to problem solving. If your first question is "what be this binary tree witchcraft?", then the smugly satisfied interviewer can start checking his email or whatever while you fumble with dry erase markers or slowly back out of the room.
 
 My first question to the interviewer would've been "what do you mean by invert?" I don't have a Googler sitting across the table from me right now, so I'll assume the worst.
 
-Maybe this was a problem of converting a max-heap to a min-heap, or vice versa. If that assumption held, I probably would've turned a shade or two whiter than the board whilst trying to derive heap sort from memory. Thankfully I can crank out some mediocre F# solution in my spare time, without the heart palpitations.
+Maybe this was a problem of converting a max-heap to a min-heap, or vice versa. If that was true, I might've turned a shade or two whiter than the board while trying to derive heap sort from memory. Thankfully I can crank out some mediocre F# solution in my spare time, without the heart palpitations.
 
 ### Tree climbing
 
-I'd ask if the input tree would be represented in array form, and of course it would because the Googler likes fast random access and [cache locality](http://stackoverflow.com/a/12065801). But if we want to visually represent the array as a tree, we should define a `Tree` type:
+I'd ask if the input tree would be represented in array form, and of course it would because the Googler likes fast random access and [cache locality](http://stackoverflow.com/a/12065801). But if we want to represent the tree hierarchically, we should define a `Tree` type:
 {% highlight fsharp %}
 type Tree<'a> =
     | Leaf of 'a
@@ -169,7 +169,7 @@ let swap (a:_[]) i j =
 let cmp<'a> x y = Comparer<'a>.Default.Compare(x, y)
 {% endhighlight %}
 
-Without further ado, a function to do the actual sort:
+Without further ado, an actual sort function:
 {% highlight fsharp linenos=table %}
 let heapSort (a:_[]) cmp =
     let len = a.Length
@@ -182,9 +182,9 @@ let heapSort (a:_[]) cmp =
         heapify 0 lastNode
 {% endhighlight %}
 
-On line 3 we partially apply the heapify function with the arguments that will stay the same, creating a shorthand for slightly easier reading. On line 4 we're calculating the index of the last parent node in the array. On lines 5 and 6 we run a loop that heapifies every node from the last parent up to the first node of the tree. This has the effect of iteratively pushing the min (or max, depending on your `cmp` function) value to the top of the heap.
+On line `3` we partially apply the heapify function with the arguments that will stay the same, creating a shorthand for slightly easier reading. On line `4` we're calculating the index of the last parent node in the array. On lines `5` and `6` we run a loop that heapifies every node from the last parent up to the first node of the tree. This has the effect of iteratively pushing the min (or max, depending on your `cmp` function) value to the top of the heap.
 
-On lines 7 -- 9 we take advantage of the heap property that the min (or max) value is always at the top of the heap. We can produce a sorted array by taking the value off the top of the heap and putting it on the bottom, then re-heapifying everything else above it... over and over again.
+On lines `7` -- `9` we take advantage of the heap property that the min (or max) value is always at the top of the heap. We can produce a sorted array by taking the value off the top of the heap and putting it on the bottom, then re-heapifying everything else above it... over and over again.
 
 {% highlight fsharp %}
 heapSort values cmp
@@ -224,7 +224,7 @@ Invert the `cmp` function and `heapSort` will give you the inverse of your binar
 
 ## Other interpretations
 
-There's a [second interpretation](https://leetcode.com/problems/invert-binary-tree/) that says the desired solution is to simply swap the left and right nodes recursively, creating a mirror image of the tree. It seems like they would've said to reverse, mirror, or flip the tree instead, but whatever. Creating a mirrored tree would require just one function that recurses from the root node, swapping left and right nodes.
+There's [another interpretation](https://leetcode.com/problems/invert-binary-tree/) that says the desired solution is to simply swap the left and right nodes recursively, creating a mirror image of the tree. It seems like they would've said to reverse, mirror, or flip the tree instead, but whatever. Creating a mirrored tree would require just one function that recurses from the root node, swapping left and right nodes.
 
 We can do that with a recursive fold function:
 {% highlight fsharp %}

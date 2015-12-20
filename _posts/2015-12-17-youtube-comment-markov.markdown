@@ -37,14 +37,14 @@ We'll need two things to pull this off:
 Let's see how easy it is to define a parser for a simple subset of XPath. First, we'll define the types we want our parser to produce:
 {% highlight fsharp %}
 type XPathPart = Axis * NodeTest * Predicate list
-and Axis =
+type Axis =
     | Child
     | DescendantOrSelf
-and NodeTest = string
-and Operator =
+type NodeTest = string
+type Operator =
     | Equals
     | NotEquals
-and Predicate = {
+type Predicate = {
     Attribute: string
     Filter: (Operator * string) option }
 {% endhighlight %}
@@ -91,6 +91,7 @@ Expecting: end of input, '*', '/', '//' or '[@'
 {% endhighlight %}
 
 #### Walking the path
+
 Now that we can parse a simple XPath, we can evaluate it. The entry point is the `evaluate` function below. It recursively evaluates a `XPathPart list` from the context of a given `HtmlNode` (usually the root), returning any elements that satisfy the XPath's requirements.
 
 {% highlight fsharp %}
@@ -130,6 +131,7 @@ let evaluate xPath node =
 {% endhighlight %}
 
 ### Back to scraping
+
 Now we can find each video's URL with the following code:
 {% highlight fsharp %}
 let videoUrls =
@@ -183,6 +185,7 @@ let comments = commentBodies |> Seq.map getCommentText |> Seq.collect id
 The `comments` value is now a sequence of all comments for all videos we found.
 
 ## Garbage compactor
+
 Now that we have all this inane text, let's use it to generate some *insane* text. We'll combine all the comments and feed it to `MarkovTextBuilder`:
 
 > You'll need the [FsMarkov](https://github.com/taylorwood/FsMarkov) code from my previous post for this.
@@ -192,7 +195,6 @@ let corpus = comments |> String.concat Environment.NewLine
 let nGrams = getWordPairs nGramSize corpus
 let map = buildMarkovMap nGrams
 let generator = MarkovTextBuilder(map)
-
 // print a few sentences out
 generator.GenerateSentences 10
 |> joinWords
