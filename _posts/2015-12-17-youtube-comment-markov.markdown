@@ -165,8 +165,8 @@ The JSON property contains the comments as embedded HTML. We can use `HtmlDocume
 {% highlight fsharp %}
 let parseComments (body: JsonValue) =
     let commentHtml = HtmlDocument.Parse(body.AsString())
-    commentHtml.Select("//*[@class=comment-text-content]")
-    |> Seq.map HtmlNodeExtensions.InnerText
+    commentHtml.Select("//*[@class='comment-text-content']")
+    |> Seq.map HtmlNode.innerText
 
 let comments = videoUrls |> Seq.choose getComments |> Seq.collect parseComments
 {% endhighlight %}
