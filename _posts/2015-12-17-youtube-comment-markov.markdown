@@ -189,7 +189,7 @@ generator.GenerateSentences 10
 |> printfn "%A"
 {% endhighlight %}
 
-What happens if we feed it comments from `mariah carey christmas`?
+What happens if we feed it comments from **mariah carey christmas**?
 
 > WHEN YOU'RE WATCHING IT, YOU'RE GOING TO DIE ANYWAY﻿ These kids under 15 have nothing else better to do amazing at this next christmas concert shes having i want for Christmas is FOOODDDDD :D﻿ Lol﻿ TRUUUU﻿ ▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬ Who's watching this in DECEMBER ▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬﻿ Im spicy.....﻿ +U 1.27 go away, don't copy and paste this comment.﻿ ▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬ Who's watching this on August... LEARN HOW TO read because Mariah slays you and silent night is seconds but its was first can some one help me out here and chubby people can be just as beautiful as people who are not consistent (as you said). JB about this! AIWFCIY... it's Silent Night.... Mariah Carey, Merry Christmas to everyone, Jesus is the coolest guy in the beginning...but what happened lmao﻿ If you are the best, second is Sesame Street, third is Madonna
 
@@ -205,7 +205,7 @@ let corpus =
     |> String.concat Environment.NewLine
 {% endhighlight %}
 
-What happens if we feed it a mashup of `donald trump` and `more than a feeling` comments?
+What happens if we feed it a mashup of **donald trump** and **more than a feeling** comments?
 
 > ESTABLISHMENT?? There goes CNN again. My sister was very close with him﻿ played it in your lap.﻿ I'm half expecting Will Ferrell to appear mid-song with more cowbell.﻿ +random666777 NO, why spoil a good time.﻿ I think you are going to win big ! Maybe the rest of US repugnant morality and hypocrisy if youd like; basically however, the USA split into 50 separate nations so ppl would finally stop moaning about "this cancer in Washington" and get the best". I picked up guitar during a temporary ban until we crash and burn because we become so powerful and many Americans will be classic Sina - SUPERB!﻿ +sina-drums Looking forward to hearing your album too. They will always keep them forever safe & in my heart.... Sammy Hagar opened for them.
 
