@@ -163,7 +163,7 @@ let getComments videoUrl =
 
 The JSON property contains the comments as embedded HTML. We can use `HtmlDocument` again to parse the HTML fragments, get at the comment containers, and extract their inner text:
 {% highlight fsharp %}
-let getCommentText (body: JsonValue) =
+let parseComments (body: JsonValue) =
     let commentHtml = HtmlDocument.Parse(body.AsString())
     commentHtml.Select("//*[@class=comment-text-content]")
     |> Seq.map HtmlNodeExtensions.InnerText
