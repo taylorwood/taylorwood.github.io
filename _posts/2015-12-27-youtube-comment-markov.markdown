@@ -8,7 +8,9 @@ Let's build on my post from a few months ago about [generating weird text with M
 
 We'll also use [FParsec](http://www.quanttec.com/fparsec/) to parse basic [XPath](https://en.wikipedia.org/wiki/XPath) queries for evaluation against [FSharp.Data's](http://fsharp.github.io/FSharp.Data/) `HtmlDocument`.
 
-*I've left some uninteresting but important bits of code out for brevity. All the code for this post can be found on [GitHub](https://github.com/taylorwood/YouTudes).* 
+Many thanks to [Sergey Tihon](https://twitter.com/sergey_tihon) for organizing another great [F# Advent Calendar](https://sergeytihon.wordpress.com/2015/10/25/f-advent-calendar-in-english-2015/) this year! Check out the [#FsAdvent](https://twitter.com/hashtag/FsAdvent?src=hash) tag on Twitter for more posts.
+
+*I've left some uninteresting bits of code out for brevity, but it can all be found in my [YouTudes](https://github.com/taylorwood/YouTudes) on GitHub.* 
 
 ## Request for comments
 
@@ -175,7 +177,7 @@ The `comments` value is now a sequence of all comments for all videos we found.
 
 ## Garbage fountain
 
-Now that we have all this inane text, let's use it to generate some insane text. We'll concatenate all the comments and feed it to `MarkovTextBuilder`. You'll need the [FsMarkov](https://github.com/taylorwood/FsMarkov) code from my [previous post]({% post_url 2015-07-04-markov-text %}) for this.
+Now that we have all this inane text, let's use it to generate some insane text. We'll concatenate all the comments and feed them to `MarkovTextBuilder`. You'll need the [FsMarkov](https://github.com/taylorwood/FsMarkov) code from my [previous post]({% post_url 2015-07-04-markov-text %}) for this.
 
 {% highlight fsharp %}
 let nGramSize = 3 // try different values of n
@@ -189,7 +191,7 @@ generator.GenerateSentences 10
 |> printfn "%A"
 {% endhighlight %}
 
-What happens if we feed it comments from **mariah carey christmas**?
+What happens if we feed it comments from **mariah carey christmas** videos?
 
 > WHEN YOU'RE WATCHING IT, YOU'RE GOING TO DIE ANYWAY﻿ These kids under 15 have nothing else better to do amazing at this next christmas concert shes having i want for Christmas is FOOODDDDD :D﻿ Lol﻿ TRUUUU﻿ ▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬ Who's watching this in DECEMBER ▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬﻿ Im spicy.....﻿ +U 1.27 go away, don't copy and paste this comment.﻿ ▬▬▬▬▬▬▬▬▬▬ஜ۩۞۩ஜ▬▬▬▬▬▬▬▬▬▬▬▬▬▬ Who's watching this on August... LEARN HOW TO read because Mariah slays you and silent night is seconds but its was first can some one help me out here and chubby people can be just as beautiful as people who are not consistent (as you said). JB about this! AIWFCIY... it's Silent Night.... Mariah Carey, Merry Christmas to everyone, Jesus is the coolest guy in the beginning...but what happened lmao﻿ If you are the best, second is Sesame Street, third is Madonna
 
@@ -205,7 +207,7 @@ let corpus =
     |> String.concat Environment.NewLine
 {% endhighlight %}
 
-What happens if we feed it a mashup of **donald trump** and **more than a feeling** comments?
+What happens if we feed it a mashup of comments from **donald trump** and **more than a feeling** videos?
 
 > ESTABLISHMENT?? There goes CNN again. My sister was very close with him﻿ played it in your lap.﻿ I'm half expecting Will Ferrell to appear mid-song with more cowbell.﻿ +random666777 NO, why spoil a good time.﻿ I think you are going to win big ! Maybe the rest of US repugnant morality and hypocrisy if youd like; basically however, the USA split into 50 separate nations so ppl would finally stop moaning about "this cancer in Washington" and get the best". I picked up guitar during a temporary ban until we crash and burn because we become so powerful and many Americans will be classic Sina - SUPERB!﻿ +sina-drums Looking forward to hearing your album too. They will always keep them forever safe & in my heart.... Sammy Hagar opened for them.
 
@@ -213,4 +215,4 @@ We'll stop before things get out of hand.
 
 ## Afterthoughts
 
-My [FsMarkov](https://github.com/taylorwood/FsMarkov) project makes some simplifying assumptions about english syntax, i.e. sentences start with a capitalized letter and end with punctuation. YouTube comments don't always follow those rules, so the output may be somewhat biased.
+My [FsMarkov](https://github.com/taylorwood/FsMarkov) project makes some simplifying assumptions about english syntax, i.e. sentences start with a capitalized letter and end with punctuation. YouTube comments don't always follow those rules, so the output may not reflect the full range of human emotion they contain.
