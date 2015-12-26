@@ -10,7 +10,7 @@ We'll also use [FParsec](http://www.quanttec.com/fparsec/) to parse basic [XPath
 
 Many thanks to [Sergey Tihon](https://twitter.com/sergey_tihon) for organizing another great [F# Advent Calendar](https://sergeytihon.wordpress.com/2015/10/25/f-advent-calendar-in-english-2015/) this year! Check out the [#FsAdvent](https://twitter.com/hashtag/FsAdvent?src=hash) tag on Twitter for more posts.
 
-*I've left some uninteresting bits of code out for brevity, but it can all be found in my [YouTudes](https://github.com/taylorwood/YouTudes) on GitHub.* 
+*I've left some uninteresting bits of code out for brevity, but it can all be found in my [YouTudes](https://github.com/taylorwood/YouTudes) project on GitHub.* 
 
 ## Request for comments
 
@@ -216,3 +216,5 @@ We'll stop before things get out of hand.
 ## Afterthoughts
 
 My [FsMarkov](https://github.com/taylorwood/FsMarkov) project makes some simplifying assumptions about english syntax, i.e. sentences start with a capitalized letter and end with punctuation. YouTube comments don't always follow those rules, so the output may not reflect the full range of human emotion they contain.
+
+Both referenced F# projects were developed on OS X with Xamarin Studio/Mono, so some project file tweaks may be required to build them elsewhere.
