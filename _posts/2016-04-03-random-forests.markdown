@@ -35,9 +35,25 @@ The general workflow is as follows:
     * For **classification** the array will contain the probability for each class, e.g. if you had three classes mapped to `[0;1;2]`, the array will contain three probabilities (values between zero and one where one is absolute certainty). If you want to predict just one class, simply pick the one with the highest probability.
     
 ## Algorithmic Wine Tasting
-I picked a simple data set about subjective [wine qualities](http://archive.ics.uci.edu/ml/datasets/Wine+Quality) from U.C. Irvine's Machine Learning Repository. There are 11 feature variables and one output variable (quality). The data can be used for regression or classification because the quality scores are discrete values between one and ten, but we'll go with regression.
+I picked a simple data set about subjective [wine qualities](http://archive.ics.uci.edu/ml/datasets/Wine+Quality) from U.C. Irvine's Machine Learning Repository. There are twelve data points for each sample:
 
-Download the [white wine data file](http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv) and take a look. There are 12 columns and the last column is the output variable, which is what we'll be predicting. We'll use [F# Data](http://fsharp.github.io/FSharp.Data/) `CsvProvider` to read the file:
+1. Fixed acidity 
+1. Volatile acidity 
+1. Citric acid 
+1. Residual sugar 
+1. Chlorides 
+1. Free sulfur dioxide 
+1. Total sulfur dioxide 
+1. Density 
+1. pH 
+1. Sulphates 
+1. Alcohol
+1. Quality *(a score from 1 to 10 as judged by human tasters, this is what we'll be training our model to predict based on the first 11 variables.)*
+
+The problem can be solved with regression or classification because the quality scores are discrete values from one to ten, but we'll go with regression for simplicity. Classification would require mapping `[1 .. 10]` to `[0 .. 9]` for input, and vice versa for output, and would also predict individual probabilities for each class rather than a single, continuous variable.
+
+### Raw Data
+Download the [white wine data file](http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv) and take a look. We'll use [F# Data's](http://fsharp.github.io/FSharp.Data/) `CsvProvider` to read the file:
 
 ```ocaml
 [<Literal>]
@@ -63,4 +79,124 @@ let loadTrainingData () =
     |> Array.ofSeq
 ```
 
-*To be continued...*
+`loadTrainingData` converts every column to `float` (required by ALGLIB) and separates the input variables from the output variable, returning a tuple.
+
+### Working with ALGLIB
+Next we'll write a function to wrap ALGLIB's random forest training function:
+
+``` ocaml
+let trainForest (features: float[][]) (outputs: float[]) trees subsample =
+    let inputArray =
+        Seq.zip features outputs
+        |> Seq.map (fun (d,o) -> Array.append d [|o|])
+        |> array2D
+    let featureCount = inputArray.GetLength(1) - 1
+    let mutable info = 0
+    let forest = alglib.dforest.decisionforest()
+    let report = alglib.dforest.dfreport()
+    alglib.dforest.dfbuildrandomdecisionforest(
+        inputArray,
+        npoints = features.Length,
+        nvars = featureCount,
+        nclasses = 1, // 1 for regression, otherwise would be number of output classes
+        ntrees = trees,
+        r = subsample,
+        info = &info,
+        df = forest,
+        rep = report)
+    match info with
+    | 1  ->
+        let predictor features =
+            let mutable predictions : float[] = [||]
+            alglib.dforest.dfprocess(forest, features, &predictions)
+            predictions
+        predictor, report.oobrmserror
+    | -1 -> failwith "Incorrect parameters"
+    | -2 -> failwith "Invalid class data"
+    | _  -> failwith "Unknown error"
+```
+
+This one's pretty messy due to ALGLIB's C-style API, but let's break it down:
+
+* The inputs are `features` - an array of feature value arrays, `outputs` - an array of output values, `trees` - the number of trees to grow in the forest, and `subsample` - the percentage of training data to sample for each tree.
+* ALGLIB wants the features and the output variables combined in a two-dimensional array `inputArray`, with the output variable last. This is the only use of F#'s `array2D` I've ever seen...
+* For whatever reason it doesn't infer the number of features from the input, so we need to pass that in `featureCount`.
+* The training function has three output variables: `info` is a return code, `forest` is the trained Random Forest, and `report` is a data structure with various model statistics. In Xamarin/Mono, I wasn't able to automatically destructure those into a 3-tuple in a `let` binding, even though that works in Visual Studio 2015.
+* Finally, we `match` on the return code. On success we return a `predictor` function that takes a `features` array and returns a predicted quality value, and the Out-of-bag [RMSE](https://en.wikipedia.org/wiki/Root-mean-square_deviation). The lower the RMSE, the better.
+
+### Growing the Random Forest
+We'll want to split our data set in two, using most of it for training data and the rest of it as test data. This function will use a RNG to randomly partition the `data` array according to a given `ratio`. I've chosen to use 90% of the data set as training and the rest for testing.
+
+``` ocaml
+let rnd = System.Random(1234) // static seed for reproducable runs
+let partitionData ratio data =
+    data |> Array.partition (fun _ -> rnd.NextDouble() < ratio)
+
+let allData = loadTrainingData ()
+let trainSet, testSet = allData |> partitionData 0.9
+let trainFeatures, trainOutputs = trainSet |> Array.unzip
+let testFeatures, testOutputs = testSet |> Array.unzip
+```
+
+Now we train the Random Forest using 75 trees with 50% subsampling:
+
+``` ocaml
+let predictor, oob = trainForest trainFeatures trainOutputs 75 0.5
+printfn "Out-of-bag RMSE = %f" oob
+```
+
+It only takes a second, then we can make predictions for all samples in the test set:
+
+``` ocaml
+let predictions =
+    testFeatures
+    |> Seq.map (predictor >> Array.head)
+```
+
+Let's define a function to print the predictions along with the actual scores, and the differences between them. `printTestPrediction` has some extra logic to print `*` characters next to bad predictions.
+
+``` ocaml
+let printTestPrediction (actual, predicted) =
+    let delta =
+        match predicted - actual with
+        | x when abs x > 1. ->
+            sprintf "%4.1f %s" x (System.String('*', floor (abs x) |> int))
+        | x ->
+            sprintf "%4.1f" x
+    printfn "Actual = %.0f; Predicted = %.1f; Delta = %s" actual predicted delta
+
+// print actual vs. predicted qualities
+Seq.zip testOutputs predictions
+|> Seq.iter printTestPrediction
+```
+
+You should see output like this when running the program:
+
+```
+Out-of-bag RMSE = 0.617041
+Actual = 6; Predicted = 5.7; Delta = -0.3
+Actual = 6; Predicted = 5.8; Delta = -0.2
+Actual = 5; Predicted = 5.6; Delta =  0.6
+Actual = 6; Predicted = 6.1; Delta =  0.1
+Actual = 6; Predicted = 5.6; Delta = -0.4
+Actual = 5; Predicted = 5.1; Delta =  0.1
+Actual = 8; Predicted = 7.2; Delta = -0.8
+Actual = 6; Predicted = 5.9; Delta = -0.1
+Actual = 4; Predicted = 5.0; Delta =  1.0 *
+Actual = 6; Predicted = 6.1; Delta =  0.1
+Actual = 6; Predicted = 6.4; Delta =  0.4
+Actual = 5; Predicted = 5.3; Delta =  0.3
+Actual = 5; Predicted = 5.4; Delta =  0.4
+Actual = 6; Predicted = 5.4; Delta = -0.6
+Actual = 7; Predicted = 6.4; Delta = -0.6
+Actual = 6; Predicted = 5.5; Delta = -0.5
+Actual = 5; Predicted = 5.7; Delta =  0.7
+Actual = 5; Predicted = 5.5; Delta =  0.5
+Actual = 5; Predicted = 5.1; Delta =  0.1
+...
+```
+
+## Summary
+You can see the Random Forest has acquired a reasonably sophisticated taste for white wine, and we've barely put forth any effort. It only knows about a few chemical variables of each wine but is able to match humans' opinions fairly well. You could experiment with different numbers of trees and subsampling ratios to see if there's room for improvement, or try approaching the problem using classification.
+
+I hope you've enjoyed this tutorial! If not, have a glass of 🍷 and try to forget about it.
