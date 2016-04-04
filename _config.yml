@@ -4,8 +4,11 @@ email: taylorwood@me.com
 description: I love programming.
 baseurl: "" # the subpath of your site, e.g. /blog/
 url: "http://taylorwood.github.io" # the base hostname & protocol for your site
-twitter_username: 
-github_username:  taylorwood
+twitter_username: squeekeeper
+github_username: taylorwood
 
 # Build settings
 markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
