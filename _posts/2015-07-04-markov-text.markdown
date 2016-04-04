@@ -13,34 +13,38 @@ The accompanying F# library project is [here](https://github.com/taylorwood/FsMa
 Imagine we have a large book, made of sentences, made of words. If we consider this book to be a sequence of words and word transitions, we can imagine building a Markov model from it.
 
 Our first requirement is to be able to break a big book string into individual words:
-{% highlight fsharp %}
+
+``` ocaml
 let splitOnSpace text = Regex.Split(text, @"\s+")
 
 let getWordPairs pairSize filePath =
     File.ReadAllText filePath
     |> splitOnSpace
     |> Seq.windowed pairSize
-{% endhighlight %}
+```
 
 Some of these techniques are also applied in my [previous text classification posts]({% post_url 2015-06-15-text-classification %}). You may recognize that we're forming *n*-grams from the text using a sliding window (`Seq.windowed`), where *n* is `pairSize`. If our book is *really* big then we may consider a streamed/lazily evaluated approach, but this is a blog post.
 
 At this point you need a book. May I suggest one of the timeless classics available from [Project Gutenberg](https://www.gutenberg.org)? I'll use [Franz Kafka's](https://en.wikipedia.org/wiki/Franz_Kafka) rather neurotic Metamorphosis --- where the main character Jeff Goldblum builds a machine to transform himself into a roach.
 
 Let us build a windowed sequence of roach poetry, with trigrams:
-{% highlight fsharp %}
+
+``` ocaml
 let wordPairs = getWordPairs 3 "/Users/Taylor/Documents/Metamorphosis.txt"
-{% endhighlight %}
+```
 
 That'll give you a sliding window sequence of arrays like so:
-{% highlight fsharp %}
+
+``` ocaml
 [[|"One"; "morning,"; "when"|]; [|"morning,"; "when"; "Gregor"|];
  [|"when"; "Gregor"; "Samsa"|]; [|"Gregor"; "Samsa"; "woke"|]; ...]
-{% endhighlight %}
+```
 
 That windowed sequence represents the first words of the book: "One morning, when Gregor Samsa woke".
 
 We need a function to help us decompose those word arrays, which will give us a tuple where the first value is every word but the last, and the second value is the last word:
-{% highlight fsharp %}
+
+``` ocaml
 let bisectWords (arr:_[]) =
     let len = Array.length arr
     let preds = arr |> Seq.take (len - 1)
@@ -49,7 +53,7 @@ let bisectWords (arr:_[]) =
 // example output
 > wordPairs |> Seq.nth 0 |> bisectWords;;
 val it : string * string = ("One morning,", "when")
-{% endhighlight %}
+```
 
 ## Climbing Mt. Markov
 
@@ -57,7 +61,7 @@ For each distinct word, we can find the words directly after it throughout the b
 
 This is probably the hardest part to grasp; maybe best to read it from bottom to top. We're going to `fold` over the windowed sequence of words and construct our Markov `Map` as we go. That `Map` will be threaded through the `fold` operation as the accumulated value, and modified with each pass. In `updateMap`, if a particular word (or key) already exists in the `Map` then we replace the binding, otherwise we add a new binding.
 
-{% highlight fsharp %}
+``` ocaml
 let updateMap (map:Map<_,_>) key value =
     if map.ContainsKey key then
         let existingValue = map.[key]
@@ -68,14 +72,15 @@ let updateMap (map:Map<_,_>) key value =
 
 let mapBuilder map words = bisectWords words ||> updateMap map
 let buildMap = Seq.fold mapBuilder Map.empty
-{% endhighlight %}
+```
 
 In an imperative language this might be written as an iterative loop that modifies a mutable dictionary, and we have that option in F#, but this approach uses immutable data structures.
 
 Let's actually construct the map, which shouldn't take more than a second:
-{% highlight fsharp %}
+
+``` ocaml
 let map = buildMap wordPairs
-{% endhighlight %}
+```
 
 Now we'll partition our map into two pieces:
 
@@ -83,34 +88,35 @@ Now we'll partition our map into two pieces:
 2. Bindings that can follow the start of a sentence
 
 We'll need a function to tell us whether a word begins a sentence or not, and we'll use it to partition the map:
-{% highlight fsharp %}
+
+``` ocaml
 let isStartSentence = Regex(@"^[A-Z]").IsMatch // match any title-cased word
 let startWords, otherWords = map |> Map.partition (fun k _ -> isStartSentence k)
-{% endhighlight %}
+```
 
 Now that we have a `Map` of only "start" words, we can randomly pick one to start a sentence:
 
-{% highlight fsharp %}
+``` ocaml
 let startWordArray = map |> Seq.map (fun kvp -> kvp.Key) |> Array.ofSeq
 
 let rng = Random()
 let getRandomItem seq =
     let randIndex = rng.Next (Seq.length seq)
     seq |> Seq.nth randIndex
-{% endhighlight %}
+```
 
 ## Chaining it up
 
 We're dangerously close to actually generating gibberish sentences. All we need is a function to tell us when we've reached the end of a sentence:
 
-{% highlight fsharp %}
+``` ocaml
 // just look for ending punctuation, but don't match 'Mr.' or 'Mrs.'
 let (|IsEndOfSentence|) = Regex(@"(?<!Mr(s)?)[\.\?\!]$").IsMatch
-{% endhighlight %}
+```
 
 And then we can write a recursive function to walk our Markov map, accumulating randomly chosen words for each state transition, and then joining them together to form a sentence:
 
-{% highlight fsharp %}
+``` ocaml
 // we'll need this function to work with larger word pair sizes
 let combineWords prev next =
     [prev; next]
@@ -131,7 +137,7 @@ let getMarkovSentence startWord =
     markovChain startWord [startWord]
     |> List.rev
     |> joinWords
-{% endhighlight %}
+```
 
 This has some similarities to our recursive `fold` method of building the Markov map, in that it's working with a current state and an accumulator. The `markovChain` will go on indefinitely, randomly choosing the next element and accumulating until reaching its stop condition.
 
@@ -141,10 +147,10 @@ How many sentences of this stuff do we want? The sky's the limit. We can generat
 
 We'll start with a few sentences:
 
-{% highlight fsharp %}
+``` ocaml
 let sentences = [for i in 1 .. 3 do yield getMarkovSentence (getRandomItem startWords).Key]
 sentences |> joinWords |> printfn "%A"
-{% endhighlight %}
+```
 
 > "Gregor found it easy to see him?", and Gregor would have to re-arrange his life. Unlike him, she was looking out the window after she had to carry on with our lives and remember him with respect. It was only able to cover it and be patient, just to move about, crawling up and flat, they had no thought of closing the door and without letting the women when they went round the chest, pushing and pulling at it and rubbed it against the ground.
 

@@ -27,14 +27,15 @@ We'll revisit this topic once we get a working prototype and want to improve its
 ### Boiling it down
 
 I needed to grind up those samples so I could derive some useful information from their contents. Firstly, I needed to discard any noise: punctuation, symbols, etc. Let's define some functions for sanitizing our samples:
-{% highlight fsharp %}
+
+``` ocaml
 let inline isCharAllowed c =
     Char.IsLetterOrDigit c || Char.IsWhiteSpace c || c = '-'
     
 let sanitizeText (text: string) =
     let cleanChars = text |> Seq.filter isCharAllowed |> Seq.toArray
     new String(cleanChars)
-{% endhighlight %}
+```
 
 ### Tokenization
 
@@ -44,7 +45,7 @@ We're using a simple [bag of words](http://en.wikipedia.org/wiki/Bag-of-words_mo
 
 > An individual word is a unigram, a pair of words is a bigram, and so on. Extracting n-grams larger than a unigram can be done using a "sliding window". For example, the string `these pretzels are making me thirsty` would produce the following trigrams: `these pretzels are`, `pretzels are making`, `are making me`, `making me thirsty`.
 
-{% highlight fsharp %}
+``` ocaml
 let getNGrams n words =
     let join (items: string[]) = String.Join(" ", items)
     words |> Seq.windowed n |> Seq.map join
@@ -52,7 +53,7 @@ let getNGrams n words =
 let getWords gramSize (text: string) =
     let words = Regex.Split(text, @"\s+")
     words |> getNGrams gramSize |> Seq.toList
-{% endhighlight %}
+```
 
 ### Term frequency
 
@@ -61,35 +62,41 @@ Regardless of which n-gram size we choose, we still end up with a bag of them. W
 > If your document domain is fairly homogenous, larger n-grams might help differentiate between similar documents. However, using too large an n-gram may cause your classifier to only recognize documents that are very similar to your training set.
 
 For efficiency's sake, we'll map each n-gram to an integer, e.g. `cat` will always map to 1, `dog` will always map to 2, etc. We could technically do without this, but working with the original strings throughout our classifier would waste memory and CPU cycles.
-{% highlight fsharp %}
+
+``` ocaml
 type Term = int
-{% endhighlight %}
+```
 
 We'll define a term frequency tuple that pairs a Term with the number of times it appears in a document:
-{% highlight fsharp %}
+
+``` ocaml
 type TermFrequency = Term * int
-{% endhighlight %}
+```
 
 We'll define a record type for representing each document we're using as a training sample. It holds the path to the physical file and its set of term frequencies:
-{% highlight fsharp %}
+
+``` ocaml
 type TrainingSample = {Path: string; Frequencies: Set<TermFrequency>}
-{% endhighlight %}
+```
 
 We'll define a map to organize training samples into categories (or classes):
-{% highlight fsharp %}
+
+``` ocaml
 type Category = string
 type TrainingData = Map<Category, TrainingSample list>
-{% endhighlight %}
+```
 
 We're going to map each of our n-grams to a Term, so that `cat` always maps to the same value regardless of which document it came from:
-{% highlight fsharp %}
+
+``` ocaml
 let gramTokenMap = new Dictionary<string,Term>()
-{% endhighlight %}
+```
 
 And finally, a function to calculate the term frequencies for a collection of n-grams, i.e. a document:
-{% highlight fsharp %}
+
+``` ocaml
 let getTermFreqs words = words |> Seq.countBy (fun w -> w)
-{% endhighlight %}
+```
 
 ## Take a breather
 

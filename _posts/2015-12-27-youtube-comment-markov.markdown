@@ -19,14 +19,15 @@ Our plan is to scrape the comment text for a given search query's videos. We can
 > Google provides a [YouTube Data API](https://developers.google.com/youtube/v3/docs/) for things like this, but we'll take the dumb approach and depend on specific markup in YouTube's HTML that may break suddenly. Use their API if you're serious about harvesting garbage comments on an ongoing basis.
 
 First, we'll issue the search `query`, parse the session token from the response, then load the response in a `HtmlDocument`:
-{% highlight fsharp %}
+
+``` ocaml
 let searchHtml = Http.RequestString(searchUrl, cookieContainer = cookies)
 let sessionToken = // required for comment JSON requests
     match getSessionToken searchHtml with
     | Some t -> t
     | None -> failwith "Failed to parse session token from HTML"
 let searchDoc = HtmlDocument.Parse searchHtml
-{% endhighlight %}
+```
 
 ### And now for something completely different
 
@@ -40,7 +41,8 @@ We'll need two things to pull this off:
 #### Path parsing
 
 Let's see how easy it is to define a parser for a simple subset of XPath. First, we'll define the types we want our parser to produce:
-{% highlight fsharp %}
+
+``` ocaml
 type XPathPart = Axis * NodeTest * Predicate list
 type Axis =
     | Child
@@ -52,12 +54,13 @@ type Operator =
 type Predicate = {
     Attribute: string
     Filter: (Operator * string) option }
-{% endhighlight %}
+```
 
 Given a valid XPath, our parser should give us a list of `XPathPart` -- one for each XPath segment.
 
 [FParsec](http://www.quanttec.com/fparsec/) provides many general [parser primitives](http://www.quanttec.com/fparsec/reference/primitives.html) that we can compose into larger primitives for our needs. The following sections of code build up `Axis`, `NodeTest`, and `Predicate` parsers that will ultimately constitute a `XPathPart` parser:
-{% highlight fsharp %}
+
+``` ocaml
 // single or double slash separator
 let separator = stringReturn "/" Child
 let descOrSelf = stringReturn "//" DescendantOrSelf
@@ -73,33 +76,37 @@ let predicateName = many1Satisfy (fun c -> isAsciiLetter c || isDigit c || c = '
 let quoted = between (pstring "'") (pstring "'")
 let comparison = operator .>>. choice [quoted predicateName; predicateName]
 let predicate = between (pstring "[@") (pstring "]") (predicateName .>>. opt comparison)
-{% endhighlight %}
+```
+
 I hope that code is *mostly* self-explanatory. The `>>` operators combine two parsers, and the `.` on either side specifies which parser value to keep, e.g. the `spaces` in `operator` are allowed/parsed but discarded. The `.>>.` in `comparison` combines two parsers and keeps both of their values.
 
 We can compose those parsers into a unified XPath parser like this:
-{% highlight fsharp %}
+
+``` ocaml
 // parses one XPath segment ("/div[@id='hey'][@disabled]")
 let xPathPart =
     let predicates = many predicate
     pipe3 axis nodeName predicates getXPathPart
 // parses an entire XPath comprised of 1-to-many segments ("/div/ol/li/*")
 let xPathParts = (many1 xPathPart) .>> eof
-{% endhighlight %}
+```
+
 `pipe3` combines our three primary component parsers and pipes their output to the unlisted `getXPathPart` function that simply constructs a `XPathPart` from their values. Adding the `eof` parser on the end ensures the entire string can be parsed as a XPath; no extraneous funny business allowed.
 
 Even though we've written no error handling code, FParsec gives nice error messages for bad input:
-{% highlight ruby %}
+
+``` ruby
 Failure: Error in Ln: 1 Col: 9
 div/ul/*[💩]
         ^
 Expecting: end of input, '*', '/', '//' or '[@'
-{% endhighlight %}
+```
 
 #### Walking the path
 
 Now that we can parse a simple XPath, we can evaluate it against a `HtmlDocument`. The entry point is the `evaluate` function below. It folds over a `XPathPart list` from the context of a given `HtmlNode`, each step evaluating one `XPathPart` and passing on any nodes that meet the requirements.
 
-{% highlight fsharp %}
+``` ocaml
 let satisfiesPredicate (n: HtmlNode) pred =
     match n.TryGetAttribute(pred.Attribute) with
     | Some a ->
@@ -127,29 +134,32 @@ let evaluate' part (n: HtmlNode) =
 let evaluate xPath node =
     let folder nodes part = nodes |> List.collect (evaluate' part)
     xPath |> Seq.fold folder [node]
-{% endhighlight %}
+```
 
 ### Back to scraping
 
 Now we can get each video's URL with a handy XPath query:
-{% highlight fsharp %}
+
+``` ocaml
 let videoUrls =
     searchDoc.Select("//*[@class='yt-lockup-title']/a[@href]")
     |> Seq.map (fun a -> host + a.AttributeValue("href"))
     |> Seq.where (fun url -> url.Contains("/watch?"))
-{% endhighlight %}
+```
 
 YouTube's tasteless comments are loaded via AJAX request after the video page loads. The server requires certain values be POSTed, otherwise it won't give us the goods. The following function issues the request and returns the raw JSON string response:
-{% highlight fsharp %}
+
+``` ocaml
 let requestComments videoUrl jsonUrl =
     let body = FormValues [("session_token", sessionToken); ("client_url", videoUrl)]
     let headers = [("Referer", videoUrl); ("Origin", host)]
     printfn "Requesting comments for %s..." jsonUrl
     Http.RequestString(jsonUrl, httpMethod = "POST", body = body, headers = headers, cookieContainer = cookies)
-{% endhighlight %}
+```
 
 Next we need a function to parse the JSON response and give us the part we're interested in:
-{% highlight fsharp %}
+
+``` ocaml
 let getComments videoUrl =
     let getCommentUrl videoId = sprintf "%s/watch_fragments_ajax?v=%s&tr=time&distiller=1&frags=comments&spf=load" host videoId
     match getVideoId videoUrl with
@@ -161,17 +171,18 @@ let getComments videoUrl =
             return html
         }
     | None -> failwithf "Failed to parse video ID from video URL %s" videoUrl
-{% endhighlight %}
+```
 
 The JSON property contains the comments as embedded HTML. We can use `HtmlDocument` again to parse the HTML fragments, get at the comment containers, and extract their inner text:
-{% highlight fsharp %}
+
+``` ocaml
 let parseComments (body: JsonValue) =
     let commentHtml = HtmlDocument.Parse(body.AsString())
     commentHtml.Select("//*[@class='comment-text-content']")
     |> Seq.map HtmlNode.innerText
 
 let comments = videoUrls |> Seq.choose getComments |> Seq.collect parseComments
-{% endhighlight %}
+```
 
 The `comments` value is now a sequence of all comments for all videos we found.
 
@@ -179,7 +190,7 @@ The `comments` value is now a sequence of all comments for all videos we found.
 
 Now that we have all this inane text, let's use it to generate some insane text. We'll concatenate all the comments and feed them to `MarkovTextBuilder`. You'll need the [FsMarkov](https://github.com/taylorwood/FsMarkov) code from my [previous post]({% post_url 2015-07-04-markov-text %}) for this.
 
-{% highlight fsharp %}
+``` ocaml
 let nGramSize = 3 // try different values of n
 let corpus = comments |> String.concat Environment.NewLine
 let nGrams = getWordPairs nGramSize corpus
@@ -189,7 +200,7 @@ let generator = MarkovTextBuilder(map)
 generator.GenerateSentences 10
 |> joinWords
 |> printfn "%A"
-{% endhighlight %}
+```
 
 What happens if we feed it comments from **mariah carey christmas** videos?
 
@@ -200,12 +211,13 @@ Interesting.
 ## Mashups
 
 My [YouTudes](https://github.com/taylorwood/YouTudes) project can be run as a console application that asks for a query, scrapes any resulting video comments, then writes them all to text file. You can make your own Markov text mashups by running it for a few different queries and combining them into `corpus` like this:
-{% highlight fsharp %}
+
+``` ocaml
 let corpus =
     Directory.GetFiles("/tmp/garbage/comments", "*.txt")
     |> Seq.map File.ReadAllText
     |> String.concat Environment.NewLine
-{% endhighlight %}
+```
 
 What happens if we feed it a mashup of comments from **donald trump** and **more than a feeling** videos?
 

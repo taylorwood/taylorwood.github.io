@@ -16,45 +16,51 @@ Maybe this was a problem of converting a max-heap to a min-heap, or vice versa. 
 ### Tree climbing
 
 I'd ask if the input tree would be represented in array form, and of course it would because the Googler likes fast random access and [cache locality](http://stackoverflow.com/a/12065801). But if we want to represent the tree hierarchically, we should define a `Tree` type:
-{% highlight fsharp %}
+
+``` ocaml
 type Tree<'a> =
     | Leaf of 'a
     | Node of Tree<'a> * Tree<'a>
-{% endhighlight %}
+```
 
 This can represent a tree but it requires each node to have two children --- it doesn't cover the case where a Node has only one child. Let's try a different definition:
-{% highlight fsharp %}
+
+``` ocaml
 type Tree<'a> =
     | Nub
     | Node of 'a * Tree<'a> * Tree<'a>
-{% endhighlight %}
+```
 
 This one can represent the case where a `Node` has only one child, i.e. `Node(1, 2, Nub)` where `1` is the parent and `2` is the left child. In the case where single-child `Node` children must be to the left, this definition unfortunately allows invalid state to be represented, i.e. `Node(1, Nub, 2)`.
 
 A definition like the following might make that invalid state unrepresentable:
-{% highlight fsharp %}
+
+``` ocaml
 type Tree<'a> =
     | Leaf of 'a
     | Node of Tree<'a> * Tree<'a> option
-{% endhighlight %}
+```
 
 But we'll go with the second `Tree` definition because `Nub` sounds cool and I'm not too concerned about the strictness because we know we're building the tree correctly, right?
 
 #### Indexing into a binary heap array
 
 Since we're assuming an array representation, we need to be able to find the indices of children of any given node. Imagine a binary tree consisting of one parent `1`, a left child `2` and a right child `3`. This would be an array `[1, 2, 3]`. Simple enough, but how do you arrange elements when you have more than three nodes? You could read the [dense Wikipedia explanation](https://en.wikipedia.org/wiki/Binary_heap#Derivation_of_index_equations) for this, or you could define these two functions:
-{% highlight fsharp %}
+
+``` ocaml
 /// Gets the array index of an element's left child node
 let inline leftLeaf n = (n * 2) + 1
 /// Gets the array index of an element's right child node
 let inline rightLeaf n = (leftLeaf n) + 1
-{% endhighlight %}
+```
+
 Here we are saying that a node's left child node can be found by doubling the node's array index and adding 1, and the left child's sibling is always its direct successor.
 
 #### Growing the tree
 
 Now we can write a function that takes an array and builds a `Tree`:
-{% highlight fsharp %}
+
+``` ocaml
 let treeify (a:_[]) =
     let rec loop pos =
         match (pos, a.Length) with
@@ -67,10 +73,11 @@ let treeify (a:_[]) =
             Node(a.[pos], leftBranch, Nub)
         | IsLeaf -> Node(a.[pos], Nub, Nub)
     loop 0
-{% endhighlight %}
+```
 
 Here we are recursively constructing the tree from top (`loop 0`) to bottom. Notice the use of pattern matching to determine how we descend the tree. You could implement this function without pattern matching, but it wouldn't look as pretty and you wouldn't feel as smart. This is the definition for the pattern:
-{% highlight fsharp %}
+
+``` ocaml
 let (|IsLeaf|BranchesLeft|BranchesBoth|) (pos, len) =
     if rightLeaf pos < len then
         BranchesBoth
@@ -78,7 +85,8 @@ let (|IsLeaf|BranchesLeft|BranchesBoth|) (pos, len) =
         BranchesLeft
     else
         IsLeaf
-{% endhighlight %}
+```
+
 This pattern defines the three ways in which our tree can grow from the current `pos`:
 
 1. Current node has two children
@@ -86,15 +94,17 @@ This pattern defines the three ways in which our tree can grow from the current 
 3. Current node has no children
 
 Let's put it to the test against a randomly generated array:
-{% highlight fsharp %}
+
+``` ocaml
 let rng = new Random()
 let values = [| for n in 1 .. 10 -> rng.Next 100 |]
 
 let tree = treeify values
-{% endhighlight %}
+```
 
 You might see some output like this:
-{% highlight fsharp %}
+
+``` ocaml
 val values : int [] = [|80; 60; 56; 7; 3; 4; 89; 79; 71; 19|]
 val tree : Tree<int> =
   Node
@@ -103,10 +113,11 @@ val tree : Tree<int> =
        (60,Node (7,Node (79,Nub,Nub),Node (71,Nub,Nub)),
         Node (3,Node (19,Nub,Nub),Nub)),
      Node (56,Node (4,Nub,Nub),Node (89,Nub,Nub)))
-{% endhighlight %}
+```
 
 You could say this tree is only slightly more readable than the array representation. Let's write a function to pretty print our tree:
-{% highlight fsharp %}
+
+``` ocaml
 let prettyPrint tree =
     let rec loop tree depth =
         let vine = String('-', depth)
@@ -117,10 +128,11 @@ let prettyPrint tree =
             loop r (depth + 1)
         | Nub -> ignore()
     loop tree 0
-{% endhighlight %}
+```
 
 A little more pattern matching and recursion produces a tree that wouldn't exactly impress Bob Ross, but it's intelligible:
-{% highlight fsharp %}
+
+``` ocaml
 |80
 |-60
 |--7
@@ -131,12 +143,13 @@ A little more pattern matching and recursion produces a tree that wouldn't exact
 |-56
 |--4
 |--89
-{% endhighlight %}
+```
 
 ### Sorting the tree
 
 We've been working backwards and probably won't be getting a "yes" from the interviewer, but we can't stop now. Let's write heapsort in F#. First we'll need a function to "heapify" sections of our array:
-{% highlight fsharp %}
+
+``` ocaml
 let heapify (a:_[]) cmp start len =
     let rec loop node =
         let left = leftLeaf node
@@ -146,11 +159,11 @@ let heapify (a:_[]) cmp start len =
                 swap a node child
                 loop child
     loop start
-{% endhighlight %}
+```
 
 We descend the tree node by node, checking to make sure it's in heap order. If we find that a node's child outranks its parent, we swap them. `cmp` is a function that compares two values and returns -1, 0, or 1; this predicate is what will determine whether we're building a min- or max-heap. Let's define some of the functions that `heapify` uses:
 
-{% highlight fsharp %}
+``` ocaml
 /// Picks the child index of an element satisfying the comparator
 let inline pickBestChild (a:_[]) n cmp len =
     let left = leftLeaf n
@@ -167,10 +180,11 @@ let swap (a:_[]) i j =
     a.[j] <- temp
     
 let cmp<'a> x y = Comparer<'a>.Default.Compare(x, y)
-{% endhighlight %}
+```
 
 Without further ado, an actual sort function:
-{% highlight fsharp linenos=table %}
+
+``` ocaml
 let heapSort (a:_[]) cmp =
     let len = a.Length
     let heapify = heapify a cmp
@@ -180,23 +194,23 @@ let heapSort (a:_[]) cmp =
     for lastNode = len - 1 downto 1 do
         swap a lastNode 0
         heapify 0 lastNode
-{% endhighlight %}
+```
 
 On line `3` we partially apply the heapify function with the arguments that will stay the same, creating a shorthand for slightly easier reading. On line `4` we're calculating the index of the last parent node in the array. On lines `5` and `6` we run a loop that heapifies every node from the last parent up to the first node of the tree. This has the effect of iteratively pushing the min (or max, depending on your `cmp` function) value to the top of the heap.
 
 On lines `7` -- `9` we take advantage of the heap property that the min (or max) value is always at the top of the heap. We can produce a sorted array by taking the value off the top of the heap and putting it on the bottom, then re-heapifying everything else above it... over and over again.
 
-{% highlight fsharp %}
+``` ocaml
 heapSort values cmp
 printfn "%A" values
 
 let tree = treeify values
 prettyPrint tree
-{% endhighlight %}
+```
 
 Our output now shows a sorted array and [binary heap](https://en.wikipedia.org/wiki/Binary_heap) tree: 
 
-{% highlight fsharp %}
+``` ocaml
 [|5; 15; 31; 37; 44; 45; 53; 55; 56; 82|]
 |5
 |-15
@@ -208,7 +222,7 @@ Our output now shows a sorted array and [binary heap](https://en.wikipedia.org/w
 |-31
 |--45
 |--53
-{% endhighlight %}
+```
 
 You can put a `printfn "%A" a` statement in each iteration of those loops to visualize how this is working step-by-step, or even `prettyPrint (treeify a)` to draw the tree at each iteration.
 
@@ -216,9 +230,9 @@ You can put a `printfn "%A" a` statement in each iteration of those loops to vis
 
 At this point the interviewer has probably gone home. That's too bad for him, because we're about to invert this binary heap by changing just one line:
 
-{% highlight fsharp %}
+``` ocaml
 let cmp<'a> x y = Comparer<'a>.Default.Compare(x, y) * -1 // ooooh!
-{% endhighlight %}
+```
 
 Invert the `cmp` function and `heapSort` will give you the inverse of your binary heap tree --- if that's even what the interviewer meant by *inverting*.
 
@@ -227,7 +241,8 @@ Invert the `cmp` function and `heapSort` will give you the inverse of your binar
 There's [another interpretation](https://leetcode.com/problems/invert-binary-tree/) that says the desired solution is to simply swap the left and right nodes recursively, creating a mirror image of the tree. It seems like they would've said to reverse, mirror, or flip the tree instead, but whatever. Creating a mirrored tree would require just one function that recurses from the root node, swapping left and right nodes.
 
 We can do that with a recursive fold function:
-{% highlight fsharp %}
+
+``` ocaml
 let invert tree =
     let rec fold tree acc =
         match tree with
@@ -237,6 +252,6 @@ let invert tree =
 
 let inverted = invert tree
 prettyPrint inverted
-{% endhighlight %}
+```
 
 `invert` kicks the `fold` off with just a `Nub`, pattern matches on `Nodes`, and generates new `Nodes` which call `fold` recursively with the left and right children swapped.

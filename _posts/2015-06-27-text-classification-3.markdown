@@ -11,7 +11,8 @@ My [previous post]({% post_url 2015-06-19-text-classification-2 %}) described th
 Our simple classifier is based on a similarity (or distance) function. All we need to do is compare an unknown document with each known document. When we know what known document is most similar to our unknown document, then we can make a pretty good guess about what class the unknown document belongs to.
 
 Let's define a similarity function:
-{% highlight fsharp %}
+
+``` ocaml
 let similarity unknown known =
     let getTerms = Seq.map fst >> Set.ofSeq
     let getWeights = Seq.map snd
@@ -31,7 +32,7 @@ let similarity unknown known =
 
     (Seq.sum commonKnownWeights + Seq.sum commonUnknownWeights)
     / (Seq.sum unknownWeights + Seq.sum knownWeights)
-{% endhighlight %}
+```
 
 Now a play by play analysis:
 
@@ -49,7 +50,7 @@ Now a play by play analysis:
 
 Now we can evaluate our similarity function between our unknown document and every unknown document:
 
-{% highlight fsharp %}
+``` ocaml
 let calcCategoryProbabilities (trainedData: TrainedData) query =        
     //calculate similarity score per category, using highest score from each
     let calcSim ws = similarity query ws
@@ -60,7 +61,7 @@ let calcCategoryProbabilities (trainedData: TrainedData) query =
 
     //sort scores descending
     scores |> Seq.sortBy snd |> List.ofSeq |> List.rev
-{% endhighlight %}
+```
 
 * Our two arguments are `trainedData`, representing the entirety of our training set, and `query` is our unknown document (a sequence of `TFIDF`).
 * `calcSim` is a partially applied function; a shorthand for calculating the similarity between each weighted sample (`ws`) and our `query` document.

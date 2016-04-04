@@ -39,7 +39,7 @@ I picked a simple data set about subjective [wine qualities](http://archive.ics.
 
 Download the [white wine data file](http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv) and take a look. There are 12 columns and the last column is the output variable, which is what we'll be predicting. We'll use [F# Data](http://fsharp.github.io/FSharp.Data/) `CsvProvider` to read the file:
 
-```fsharp
+```ocaml
 [<Literal>]
 let WineDataPath = __SOURCE_DIRECTORY__ + "/../Data/winequality-white.csv"
 type WineDataCsv = CsvProvider<WineDataPath, ";">
