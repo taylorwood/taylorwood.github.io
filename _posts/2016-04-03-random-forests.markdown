@@ -4,7 +4,7 @@ title:  "Working with ALGLIB's Random Decision Forests in F#"
 date:   2016-04-03 12:00:00
 tags:   random forest decision tree alglib fsharp
 ---
-Lately I've been working on a [Kaggle competition](https://www.kaggle.com/c/home-depot-product-search-relevance) to help Home Depot improve their search results. My team has tried a variety of machine learning algorithms along the way, starting with linear & logistic regression, moving on to [random forests](https://en.wikipedia.org/wiki/Random_forest), as well as experimenting with XGBoost. In this article I'll focus on random forests because they're very easy to use and perform well on a variety of problems.
+Lately I've been working on a [Kaggle competition](https://www.kaggle.com/c/home-depot-product-search-relevance) to help Home Depot improve their search results. My team has tried a few machine learning algorithms along the way, starting with linear & logistic regression, moving on to [random forests](https://en.wikipedia.org/wiki/Random_forest), and experimenting with [XGBoost](https://xgboost.readthedocs.org/en/latest/). In this post I'll focus on random forests because they're very easy to use and perform well on a variety of problems.
 
 ## Random Forests
 My one-liner explanation of random forests is "a bunch of [decision trees](https://en.wikipedia.org/wiki/Decision_tree) grown by using a random subsample of your training data per tree." That's a gross oversimplification but I won't go into detail here -- instead I recommend reading [Mathias Brandewinder's](https://twitter.com/brandewinder) much better explanation in [this post](http://www.clear-lines.com/blog/post/Random-Forest-classification-in-F-first-cut.aspx) that also includes a sample implementation.
@@ -15,14 +15,14 @@ Random forests have several appealing properties:
 1. They can be less prone to [overfitting](https://en.wikipedia.org/wiki/Overfitting) than other algorithms, thanks in part to random sampling per tree.
 1. Since each tree is grown using random subsampling of the complete training set, the model's performance can be assessed during training using "[out-of-bag](https://en.wikipedia.org/wiki/Out-of-bag_error)" samples. This basically removes the need for a separate [cross validation](https://en.wikipedia.org/wiki/Cross-validation_(statistics)) process.
 1. They can be used for regression, classification, and other tasks.
-1. The training process can be really fast, especially compared to complex models like neural networks.
+1. The training process can be really fast, especially compared to more complex models like neural networks.
 
 ## ALGLIB's Implementation
 The [ALGLIB](http://www.alglib.net) library provides a variety of tools for machine learning. It's free to use under GPL and targets several languages/platforms. The official site provides some [background](http://www.alglib.net/dataanalysis/decisionforest.php) and [documentation](http://www.alglib.net/translator/man/manual.csharp.html#unit_dforest) regarding its Random Decision Forest implementation.
 
 The general workflow is as follows:
 
-1. **Construct a two-dimensional array of training input:**
+1. **Construct an array of training input:**
     * **Extract some features from your training data.** Your features will need to be converted to an array of floating point numbers. If one of your features is something like a category of `[red, green, yellow]` then you'll need to map those values by identifying the distinct set of classes across the entire data set and mapping each value to a number, e.g. `[red = 1, green = 2, yellow = 3]`.
     * **Isolate your training data output variable:** If your problem is **regression**, your output variable (the property you want your model to predict) will likely already be numeric. If your problem is **classification**, you may need to map the classes to numeric values as well. ALGLIB expects the training data output/class to be the last column in the input array.
 1. **Pick some training parameters.** ALGLIB allows the following parameters to be adjusted:
@@ -50,7 +50,7 @@ I picked a simple data set about subjective [wine qualities](http://archive.ics.
 1. Alcohol
 1. Quality *(a score from 1 to 10 as judged by human tasters, this is what we'll be training our model to predict based on the first 11 variables.)*
 
-The problem can be solved with regression or classification because the quality scores are discrete values from one to ten, but we'll go with regression for simplicity. Classification would require mapping `[1 .. 10]` to `[0 .. 9]` for input, and vice versa for output, and would also predict individual probabilities for each class rather than a single, continuous variable.
+The problem can be solved with regression or classification because the quality scores are discrete values from one to ten, but we'll go with regression for simplicity. Classification would require mapping the output classes from `[1 .. 10]` to `[0 .. 9]` for input, and vice versa for output, and would also predict individual probabilities for each class rather than a single, continuous variable.
 
 ### Raw Data
 Download the [white wine data file](http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv) and take a look. We'll use [F# Data's](http://fsharp.github.io/FSharp.Data/) `CsvProvider` to read the file:
@@ -122,7 +122,7 @@ This one's pretty messy due to ALGLIB's C-style API, but let's break it down:
 * ALGLIB wants the features and the output variables combined in a two-dimensional array `inputArray`, with the output variable last. This is the only use of F#'s `array2D` I've ever seen...
 * For whatever reason it doesn't infer the number of features from the input, so we need to pass that in `featureCount`.
 * The training function has three output variables: `info` is a return code, `forest` is the trained Random Forest, and `report` is a data structure with various model statistics. In Xamarin/Mono, I wasn't able to automatically destructure those into a 3-tuple in a `let` binding, even though that works in Visual Studio 2015.
-* Finally, we `match` on the return code. On success we return a `predictor` function that takes a `features` array and returns a predicted quality value, and the Out-of-bag [RMSE](https://en.wikipedia.org/wiki/Root-mean-square_deviation). The lower the RMSE, the better.
+* Finally, we `match` on the return code. On success we return a `predictor` function that takes a `features` array and returns a predicted quality value, and the out-of-bag [RMSE](https://en.wikipedia.org/wiki/Root-mean-square_deviation). The lower the RMSE, the better.
 
 ### Growing the Random Forest
 We'll want to split our data set in two, using most of it for training data and the rest of it as test data. This function will use a RNG to randomly partition the `data` array according to a given `ratio`. I've chosen to use 90% of the data set as training and the rest for testing.
@@ -138,14 +138,14 @@ let trainFeatures, trainOutputs = trainSet |> Array.unzip
 let testFeatures, testOutputs = testSet |> Array.unzip
 ```
 
-Now we train the Random Forest using 75 trees with 50% subsampling:
+Now we train the forest using 75 trees with 50% subsampling:
 
 ``` ocaml
 let predictor, oob = trainForest trainFeatures trainOutputs 75 0.5
 printfn "Out-of-bag RMSE = %f" oob
 ```
 
-It only takes a second, then we can make predictions for all samples in the test set:
+It only takes a second, then we're ready to make predictions for all samples in the test set:
 
 ``` ocaml
 let predictions =
