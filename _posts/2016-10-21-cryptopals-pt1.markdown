@@ -71,7 +71,7 @@ let brute cryptBytes = seq {
         yield xorBytesWith cryptBytes b |> bytesToString }
 ```
 
-`xorBytesWith` XOR's each byte in `bytes` with a given byte `value`. We'll use that in `brute` which produces a sequence of XOR'd buffers, one for each possible `byte` value as the key. One of those XOR'd buffers will be our decrypted ciphertext, but how can we  identify which one?
+`xorBytesWith` XOR's each byte in `bytes` with a given byte `value`. We'll use that in `brute` which produces a sequence of XOR'd buffers, one for each possible `byte` value as the key. One of those XOR'd buffers will be our decrypted ciphertext, but how can we identify which one?
 
 >Devise some method for "scoring" a piece of English plaintext. Character frequency is a good metric. Evaluate each output and choose the one with the best score.
 
@@ -147,7 +147,9 @@ let encryptedStanza = Seq.zip stanzaBytes repetitiveKey |> Seq.map (fun (x,y) ->
 printBytesHex encryptedStanza
 ```
 
-Finally we zip the plaintext bytes with the key bytes, XOR each pair, and we've rolled our own very bad crypto.
+Finally we zip the plaintext bytes with the key bytes, XOR each pair, and we've rolled our own very weak crypto.
+
+<blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">when you roll your own crypto <a href="https://t.co/nRdwPhGpeG">pic.twitter.com/nRdwPhGpeG</a></p>&mdash; nasty hombre 🔑 (@mshelton) <a href="https://twitter.com/mshelton/status/733484058752221184">May 20, 2016</a></blockquote> <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 ## [Challenge 6](https://cryptopals.com/sets/1/challenges/6)
 
