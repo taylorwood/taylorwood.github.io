@@ -6,6 +6,8 @@ tags:   crypto fsharp
 ---
 My [previous post]({% post_url 2016-10-21-cryptopals-pt1 %}) covered approaches to challenges in Set 1 of CryptoPals challenges. This post will be more of the same for Set 2.
 
+The code is available on [GitHub](https://github.com/taylorwood/FsCryptoPals).
+
 ## [Challenge 9](https://cryptopals.com/sets/2/challenges/9)
 
 ### Implement PKCS#7 padding

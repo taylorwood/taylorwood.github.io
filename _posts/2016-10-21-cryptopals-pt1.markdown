@@ -6,6 +6,8 @@ tags:   crypto fsharp
 ---
 The [CryptoPals challenges](https://cryptopals.com) are a great hands-on introduction to cryptography and [cryptanalysis](https://en.wikipedia.org/wiki/Cryptanalysis). This post will outline some of my approaches to the challenges, written in F#.
 
+The code is available on [GitHub](https://github.com/taylorwood/FsCryptoPals).
+
 My solutions for Set 2 challenges are in [this post]({% post_url 2016-10-23-cryptopals-pt2 %}).
 
 ## [Challenge 1](https://cryptopals.com/sets/1/challenges/1)
