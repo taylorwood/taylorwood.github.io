@@ -126,7 +126,7 @@ let isECB encrypt =
 isECB crazyCrypt
 ```
 
-## Challenge 12
+## [Challenge 12](https://cryptopals.com/sets/2/challenges/12)
 
 ### Byte-at-a-time ECB decryption
 
