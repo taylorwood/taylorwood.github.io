@@ -1,10 +1,12 @@
 ---
 layout: post
-title:  "Working CryptoPals challenges in F#"
+title:  "Working CryptoPals Set 1 challenges in F#"
 date:   2016-10-21 12:00:00
 tags:   crypto fsharp
 ---
 The [CryptoPals challenges](https://cryptopals.com) are a great hands-on introduction to cryptography and [cryptanalysis](https://en.wikipedia.org/wiki/Cryptanalysis). This post will outline some of my approaches to the challenges, written in F#.
+
+My solutions for Set 2 challenges are in [this post]({% post_url 2016-10-23-cryptopals-pt2 %}).
 
 ## [Challenge 1](https://cryptopals.com/sets/1/challenges/1)
 
@@ -77,7 +79,7 @@ let brute cryptBytes = seq {
 
 ```ocaml
 let isLikelyMatch (str: string) =
-    let isPunctuation c = c = ',' || c = ''' || c = '.' || c = '?' || c = '!'
+    let isPunctuation = function ',' | ''' | '.' | '?' | '!' -> true | _ -> false
     let isTypical c = Char.IsLetter c || c = ' ' || isPunctuation c
     let letters = str |> Seq.where Char.IsLetter |> Seq.length
     let lowers = str |> Seq.where Char.IsLower |> Seq.length
@@ -300,7 +302,7 @@ decrypt aesBytes "YELLOW SUBMARINE"
 
 ### Detect AES ECB encrypted text
 
-Because in ECB mode the same plaintext input per-block will produce the same ciphertext output, we will assume that the existence of "duplicate" blocks indicates AES ECB encrypted text.
+Because in ECB mode the same plaintext input per-block will produce the same ciphertext output, we'll assume that the presence of "duplicate" blocks indicates AES ECB encrypted text.
 
 ```ocaml
 let hexLines = IO.File.ReadAllLines(__SOURCE_DIRECTORY__ + "/Challenge8.txt") |> Array.map hexToBytes
@@ -308,3 +310,7 @@ hexLines
 |> Array.map (Array.chunkBySize 16 >> Array.distinct >> Array.length)
 |> Seq.iteri (printfn "%d: %A") // line 133 has only 7/10 distinct blocks
 ```
+
+## More challenges
+
+My solutions for Set 2 challenges are in [this post]({% post_url 2016-10-23-cryptopals-pt2 %}).
