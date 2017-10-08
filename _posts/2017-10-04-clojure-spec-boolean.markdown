@@ -69,7 +69,7 @@ Whenever I'm writing a spec, I'm always playing with it in the REPL as I go. Uns
 (s/conform ::group [:x])
 => {:head :x}
 ```
-Yep, checks out. Clojure.spec's `conform` function takes a _spec_ (either a namespaced keyword that refers to one or an inline spec) and some data to be _conformed_. A very interesting aspect of clojure.spec is that the process of _conforming_ input data to a spec can produce arbitrarily different output data. In this case, the `cat` and `or` functions will _tag_ our output as you can see above; we get a map back telling us where our `:head` is.
+Clojure.spec's `conform` function takes a _spec_ (either a namespaced keyword that refers to one or an inline spec) and some data to be _conformed_. A very interesting aspect of clojure.spec is that the process of _conforming_ input data to a spec can produce arbitrarily different output data. In this case, the `cat` and `or` functions will _tag_ our output as you can see above; we get a map back telling us where our `:head` is.
 
 ```clojure
 (s/conform ::group [:x :y])
@@ -97,8 +97,6 @@ Let's put it to some slightly tougher tests:
                    :tail [{:op :or, :clause [:expr :z]}
                           {:op :or, :clause [:group {:head :foo, :tail [{:op :and, :clause [:expr :bar]}]}]}]}]}]}
 ```
-
-Seems like it works alright.
 
 # Generation
 
@@ -229,6 +227,6 @@ Try generating samples of `::group` before and after this change to see the diff
 
 # Full Example
 
-<script src="https://gist.github.com/taylorwood/91c74ec2ee90f1ec0e5931d247a168e1.js"></script>
+<script src="https://gist.github.com/taylorwood/232129ccd3cb809281fea591d46f1b8a.js"></script>
 
-Many thanks to the awesome Clojure community! When I ran into issues, the maintainer of test.check chimed in _instantly_ on Clojurians Slack with advice.
+Many thanks to the awesome Clojure community! When I ran into issues, the maintainer of test.check chimed in _instantly_ on [Clojurians Slack](https://clojurians.slack.com) with advice.
