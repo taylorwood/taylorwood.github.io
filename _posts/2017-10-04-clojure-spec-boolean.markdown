@@ -1,8 +1,8 @@
 ---
 layout: post
-title:  "Boolean Infix DSL Validation with clojure.spec"
+title:  "Infix DSL Validation with clojure.spec"
 date:   2017-10-04 12:00:00
-tags:   clojure spec dsl infix
+tags:   clojure spec dsl infix boolean recursive
 ---
 
 Say you're going to write some code to parse and validate logical boolean clauses as data. Maybe you're writing a DSL to allow users to express some rules for a rules engine, e.g. "date is today and junk is true". Wouldn't it be nice to be able to validate these logical declarations, perhaps by defining a **specification** _declaratively?!_
