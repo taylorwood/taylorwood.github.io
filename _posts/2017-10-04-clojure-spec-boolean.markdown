@@ -5,7 +5,7 @@ date:   2017-10-04 12:00:00
 tags:   clojure spec dsl infix
 ---
 
-Say you have a problem. You're going to write some code to parse and validate logical boolean clauses as data. Maybe you're writing a DSL to allow users to express some rules for a rules engine, e.g. "date is today and junk is true". Wouldn't it be nice to be able to validate these logical declarations, perhaps by defining a **specification** _declaratively?!_
+Say you're going to write some code to parse and validate logical boolean clauses as data. Maybe you're writing a DSL to allow users to express some rules for a rules engine, e.g. "date is today and junk is true". Wouldn't it be nice to be able to validate these logical declarations, perhaps by defining a **specification** _declaratively?!_
 
 [Clojure.spec](https://clojure.org/guides/spec) gives us the tools to define a specification, evaluate arbitrary input against it, and (by way of [clojure/test.check](https://github.com/clojure/test.check)) even generate random sample data accordant with the specification.
 
@@ -22,7 +22,7 @@ Of course users want to group and nest these logical expressions.
 [:x :and :y [:a :or :b [:all :or :nothing]]]
 ```
 
-_And of course we'll assume we're able to deserialize user input into this vector/keyword form._
+_And of course we'll assume we're able to parse user input into this vector/keyword form._
 
 # Declaring Specs
 
@@ -34,7 +34,7 @@ Clojure.spec defines a simple language of easily-composed primitives to allow ve
 ```clojure
 (def op-keys #{:and :or})
 ```
-We can use sets as predicates here. Our _spec_ for operators is simply a set of keywords.
+Sets can be used as specs, so our spec for operators is simply a set of keywords.
 
 Those operators need operands. Here we'll `def`ine a _spec_ called `::expression`:
 ```clojure
@@ -63,7 +63,7 @@ Our specification is **recursive**---a grouping of expressions is itself an expr
 
 # Trial & Error
 
-Whenever I'm writing a spec, I'm always playing with it in the REPL as I go. This should come as no surprise but I went through **many** (oft non-working) iterations before landing on the oh-so-elegant-and-plainly-correct spec above.
+Whenever I'm writing a spec, I'm always playing with it in the REPL as I go. Unsurprisingly I went through **many** (oft non-working) iterations before landing on the oh-so-elegant-and-plainly-correct spec above.
 
 ```clojure
 (s/conform ::group [:x])
@@ -102,7 +102,7 @@ Seems like it works alright.
 
 # Generation
 
-Surely after you validate these input clauses you're going to want to _do something_ with them? What if you could conjure up a universe of test case inputs for that something? (**Spoiler:** you can.) Simply defining this spec gives us a nifty superpower. Using test.check we can randomly generate samples of our spec:
+Surely after you validate these input clauses you're going to want to _do something_ with them? What if you could conjure up a universe of test case inputs for that something? (**Spoiler:** you can.) Using test.check we can randomly generate samples of our spec:
 ```clojure
  (sgen/sample (s/gen ::group))
  => ;; abbreviated output
@@ -115,7 +115,7 @@ _Nice._
 
 # Bonus Round
 
-What if you needed to emit some sort of query language for these expressions? Let's transform these infix expressions into strings vaguely resembling Some Query Language! We'll use an acronym SQL, that sounds nice.
+What if you needed to emit some sort of string query for these expressions?
 
 ```clojure
 (defn clause-str [clause] ;; it's too early for doc strings
@@ -125,6 +125,9 @@ What if you needed to emit some sort of query language for these expressions? Le
         (format "(%s)" (cs/join " " (map name elem)))
         elem))
     clause))
+
+(clause-str [[:x :or :y] :and :x])
+=> "((x or y) and x)"
 ```
 
 Here we use [clojure.walk's `postwalk`](https://clojure.github.io/clojure/clojure.walk-api.html#clojure.walk/postwalk) to perform a depth-first traversal of our data strucure (a vector of keywords and/or vectors). The depth-first part is important because we want our transformed output to reflect the nested group structure of our data, which we accomplish here by simply parenthesizing the group strings. For the group elements we just take the `name` of each keyword joined by spaces.
@@ -148,23 +151,23 @@ Let's exercise `clause-str` with those randomly generated samples.
 
 Or just call it with some bespoke inputs:
 ```clojure
-(clause-str [[:x
-              :or :y
-              :or :z
-              :or [:q :and :z]]
-              :and :x
-              :and :y
-              :and :z
-              :and [:x
-                    :or :y
-                    :or :z
-                    :or [:q :and :z]]])
+(s/conform ::group [[:x
+                     :or :y
+                     :or :z
+                     :or [:q :and :z]]
+                    :and :x
+                    :and :y
+                    :and :z
+                    :and [:x
+                          :or :y
+                          :or :z
+                          :or [:q :and :z]]])
 => "((x or y or z or (q and z)) and x and y and z and (x or y or z or (q and z)))"
 ```
 
 # Callers Behave
 
-We can ensure `clause-str` is called with valid arguments using clojure.spec.test's `instrument`.
+Now with a spec in hand, we can ensure `clause-str` is called with valid arguments using clojure.spec.test's `instrument`.
 
 ```clojure
 (s/fdef clause-str                              ;; a spec for our function
@@ -181,28 +184,51 @@ CompilerException clojure.lang.ExceptionInfo: Call to #'playground.test/clause-s
 In: [0] val: () fails spec: :playground.test/group at: [:args :clause :tail :clause] predicate: (or :expr :playground.test/expression :group :playground.test/group)...
 ```
 
-Instrumenting our function under test reveals a problem! Our exact input we `postwalk`'d above no longer works:
+# Generative/Property-based Testing
+
+For the sake of example, let's add a (unfortunately meaningless/tautological) return value assertion to our function spec, then `check` the function's properties:
+
 ```clojure
-(clause-str [[:x
-              :or :y
-              :or :z
-              :or [:q :and :z]]
-             :and :x
-             :and :y
-             :and :z
-             :and [:x
-                   :or :y
-                   :or :z
-                   :or [:q :and :z]]])
-ExceptionInfo Call to #'playground.test/clause-str did not conform to spec:
-In: [0 0] val: [:x :or :y :or :z :or [:q :and :z]] fails spec: :playground.test/expression at: [:args :clause :head] predicate: keyword?
+(s/fdef clause-str
+        :args (s/cat :clause (s/spec ::group))
+        :ret  string?)
+(stest/check `clause-str)
 ```
 
-What's the problem? Our `::group` spec is a concatenation expecting a `:head` element that conforms to `::expression`. In this input, our `:head` element is actually a vector/group of expressions, which doesn't conform to `::expression`. We can fix it by revising our `::expression` spec:
+After a minute or so you'll realize this isn't going to finish any time soon. The issue is that test.check is generating very complex, deeply nested samples for our recursive spec. Luckily clojure.spec has a workaround via dynamic binding [`clojure.spec.alpha/*recursion-limit*`](https://clojure.github.io/clojure/branch-master/clojure.spec-api.html#clojure.spec/*recursion-limit*).
 ```clojure
-(s/def ::expression
-  (s/or :g ::group
-        :v (s/and keyword?
-                 #(not (contains? op-keys %)))))
+(binding [s/*recursion-limit* 1]
+  (stest/check `clause-str))
 ```
-Our `::expression` and `::group` specs are now mutually recursive. This might be a bad idea, but it works! Try generating samples of `::group` before and after this change to see the difference; the latter samples are much more complex.
+Putting a tight upper bound on generative recursion allows `check` to run in a few seconds.
+
+Property-based testing is great, but you must accurately define the properties. In this case, our _properties_ are derived from our spec, and our spec isn't quite right. Calling our `instrument`ed function with hand-generated inputs reveals such a problem:
+```clojure
+(clause-str [[:x :or :y] :and :z])
+CompilerException clojure.lang.ExceptionInfo: Call to #'playground.test/clause-str did not conform to spec:
+In: [0 0] val: [:x :or :y] fails spec: :playground.test/expression at: [:args :clause :head] predicate: keyword?
+```
+
+Our `::group` spec is a concatenation expecting a `:head` element that conforms to `::expression`. In this case, our first/`:head` element is actually a sub-`::group` of expressions, which doesn't conform to `::expression`. We can fix it by revising our `::group` spec to be recursive in the `:head` position too:
+```clojure
+(s/def ::group
+  (s/cat :head (s/or :g ::group :e ::expression)
+         :tail (s/*
+                 (s/cat :op     op-keys
+                        :clause (s/or :expr  ::expression
+                                      :group ::group)))))
+```
+Or we can get rid of that duplicated `s/or` with another forward-referencing spec:
+```clojure
+(s/def ::subgroup (s/or :g ::group :e ::expression))
+(s/def ::group
+  (s/cat :head ::subgroup
+         :tail (s/* (s/cat :op op-keys :clause ::subgroup))))
+```
+Try generating samples of `::group` before and after this change to see the difference; the latter samples are much more complex.
+
+# Full Example
+
+<script src="https://gist.github.com/taylorwood/91c74ec2ee90f1ec0e5931d247a168e1.js"></script>
+
+Many thanks to the awesome Clojure community! When I ran into issues, the maintainer of test.check chimed in _instantly_ on Clojurians Slack with advice.
