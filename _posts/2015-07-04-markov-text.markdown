@@ -25,7 +25,7 @@ let getWordPairs pairSize filePath =
 
 Some of these techniques are also applied in my [previous text classification posts]({% post_url 2015-06-15-text-classification %}). You may recognize that we're forming *n*-grams from the text using a sliding window (`Seq.windowed`), where *n* is `pairSize`. If our book is *really* big then we may consider a streamed/lazily evaluated approach, but this is a blog post.
 
-At this point you need a book. May I suggest one of the timeless classics available from [Project Gutenberg](https://www.gutenberg.org)? I'll use [Franz Kafka's](https://en.wikipedia.org/wiki/Franz_Kafka) rather neurotic Metamorphosis --- where the main character Jeff Goldblum builds a machine to transform himself into a roach.
+At this point you need a book. May I suggest one of the timeless classics available from [Project Gutenberg](https://www.gutenberg.org)? I'll use [Franz Kafka's](https://en.wikipedia.org/wiki/Franz_Kafka) rather neurotic Metamorphosis---where the main character Jeff Goldblum builds a machine to transform himself into a roach.
 
 Let us build a windowed sequence of roach poetry, with trigrams:
 
@@ -158,4 +158,4 @@ This may be even creepier than the source material!
 
 ### Word pair sizing
 
-Notice if you increase the size of the word pairings, e.g. `getWordPairs 4`, the generated material starts to resemble the original text more closely --- this is because each state of your Markov map is more specific. Using a word pair size of 4 or 5 will often regenerate sentences from the source text verbatim. Using a value of 2 will generate much more *random* looking text, because each state consists of only one word. This will also depend on the amount and variety of source text used to build your Markov model.
+Notice if you increase the size of the word pairings, e.g. `getWordPairs 4`, the generated material starts to resemble the original text more closely---this is because each state of your Markov map is more specific. Using a word pair size of 4 or 5 will often regenerate sentences from the source text verbatim. Using a value of 2 will generate much more *random* looking text, because each state consists of only one word. This will also depend on the amount and variety of source text used to build your Markov model.

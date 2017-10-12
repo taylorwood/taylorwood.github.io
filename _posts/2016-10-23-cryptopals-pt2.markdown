@@ -164,7 +164,7 @@ isECB Oracle12.encrypt
 
 Now for the interesting part. We know the block size, and we know that the `unknown-string` gets appended to `your-string` in the encrypt function. What would happen if we sent a plaintext input that was one shorter than the block size? The first character of secret string would be appended to the end of the first block.
 
-Using a short buffer we can ensure the last character of the plaintext input will be the first character of the secret string -- we can force it to be the last character of an otherwise "empty" block -- so we can now brute force the first block with every byte, and compare it to the encrypted block of the "short" buffer. If the two blocks match, we've identified the first character of the secret string!
+Using a short buffer we can ensure the last character of the plaintext input will be the first character of the secret string---we can force it to be the last character of an otherwise "empty" block---so we can now brute force the first block with every byte, and compare it to the encrypted block of the "short" buffer. If the two blocks match, we've identified the first character of the secret string!
 
 ```ocaml
 // how many blocks of secret text are there? find out by encrypting an empty buffer
@@ -192,7 +192,7 @@ for blockNum in 0 .. numBlocks - 1 do
 secret.ToArray() |> bytesToString |> printfn "%A"
 ```
 
-I took an iterative approach to this problem, maybe easier to understand than purely functional. If a brute forced block matches the ciphertext of the short block, we have a match. For each offset of the block size, we shorten the input plaintext and accumulate the guessed key characters -- and this is repeated for each block. Each block yields 16 characters, except when padded.
+I took an iterative approach to this problem, maybe easier to understand than purely functional. If a brute forced block matches the ciphertext of the short block, we have a match. For each offset of the block size, we shorten the input plaintext and accumulate the guessed key characters---and this is repeated for each block. Each block yields 16 characters, except when padded.
 
 ## More to come
 

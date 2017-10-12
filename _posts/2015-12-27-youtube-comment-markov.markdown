@@ -56,7 +56,7 @@ type Predicate = {
     Filter: (Operator * string) option }
 ```
 
-Given a valid XPath, our parser should give us a list of `XPathPart` -- one for each XPath segment.
+Given a valid XPath, our parser should give us a list of `XPathPart`---one for each XPath segment.
 
 [FParsec](http://www.quanttec.com/fparsec/) provides many general [parser primitives](http://www.quanttec.com/fparsec/reference/primitives.html) that we can compose into larger primitives for our needs. The following sections of code build up `Axis`, `NodeTest`, and `Predicate` parsers that will ultimately constitute a `XPathPart` parser:
 

@@ -207,7 +207,7 @@ Anyway, we now have some guesses as to the _length_ of a possible key. Here are 
 
 ```[(29, 2.683908046); (5, 2.766666667); (15, 2.966666667); (31, 3.010752688);]```
 
-Again, the idea is to exploit the nature of a repeating key by taking "slices" of the ciphertext for each key character offset. We think our key is 29 characters, so in order to guess the _first_ character of the key we take the first and every 29th character from the ciphertext then analyze them together. To guess the _second_ character of the key, we'd take the second and every 29th character from there, etc. If our key length guess is right, the same character will have been used to XOR each of those plaintext characters at the repsective offsets. Even when looking at a decrypted "slice" the resulting text should still resemble a typical distribution of character types -- hopefully so that `isLikelyMatch` will still recognize it!
+Again, the idea is to exploit the nature of a repeating key by taking "slices" of the ciphertext for each key character offset. We think our key is 29 characters, so in order to guess the _first_ character of the key we take the first and every 29th character from the ciphertext then analyze them together. To guess the _second_ character of the key, we'd take the second and every 29th character from there, etc. If our key length guess is right, the same character will have been used to XOR each of those plaintext characters at the repsective offsets. Even when looking at a decrypted "slice" the resulting text should still resemble a typical distribution of character types---hopefully so that `isLikelyMatch` will still recognize it!
 
 ```ocaml
 let findLikelyKeyCombos buffer keySize =

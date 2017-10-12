@@ -3,7 +3,7 @@ layout: post
 title:  "Coding interview minutiae grows on trees"
 date:   2015-06-24 15:39:00
 ---
-The author of Homebrew was recently asked to "invert a binary tree" during a Google interview. Well, he didn't get the job, and many a blogger [cried foul](http://www.jasq.org/just-another-scala-quant/inverting-binary-trees-considered-harmful) at the pitiful state of technical interviews. I agree that coding interviews can be arbitrary and asinine -- but I couldn't help myself. I had to take the [binary tree](https://en.wikipedia.org/wiki/Binary_tree) challenge to validate my existence as a programmer.
+The author of Homebrew was recently asked to "invert a binary tree" during a Google interview. Well, he didn't get the job, and many a blogger [cried foul](http://www.jasq.org/just-another-scala-quant/inverting-binary-trees-considered-harmful) at the pitiful state of technical interviews. I agree that coding interviews can be arbitrary and asinine---but I couldn't help myself. I had to take the [binary tree](https://en.wikipedia.org/wiki/Binary_tree) challenge to validate my existence as a programmer.
 
 ## Do what now?
 
@@ -23,7 +23,7 @@ type Tree<'a> =
     | Node of Tree<'a> * Tree<'a>
 ```
 
-This can represent a tree but it requires each node to have two children --- it doesn't cover the case where a Node has only one child. Let's try a different definition:
+This can represent a tree but it requires each node to have two children---it doesn't cover the case where a Node has only one child. Let's try a different definition:
 
 ``` ocaml
 type Tree<'a> =
@@ -198,7 +198,7 @@ let heapSort (a:_[]) cmp =
 
 On line `3` we partially apply the heapify function with the arguments that will stay the same, creating a shorthand for slightly easier reading. On line `4` we're calculating the index of the last parent node in the array. On lines `5` and `6` we run a loop that heapifies every node from the last parent up to the first node of the tree. This has the effect of iteratively pushing the min (or max, depending on your `cmp` function) value to the top of the heap.
 
-On lines `7` -- `9` we take advantage of the heap property that the min (or max) value is always at the top of the heap. We can produce a sorted array by taking the value off the top of the heap and putting it on the bottom, then re-heapifying everything else above it... over and over again.
+On lines `7`--`9` we take advantage of the heap property that the min (or max) value is always at the top of the heap. We can produce a sorted array by taking the value off the top of the heap and putting it on the bottom, then re-heapifying everything else above it... over and over again.
 
 ``` ocaml
 heapSort values cmp
@@ -234,7 +234,7 @@ At this point the interviewer has probably gone home. That's too bad for him, be
 let cmp<'a> x y = Comparer<'a>.Default.Compare(x, y) * -1 // ooooh!
 ```
 
-Invert the `cmp` function and `heapSort` will give you the inverse of your binary heap tree --- if that's even what the interviewer meant by *inverting*.
+Invert the `cmp` function and `heapSort` will give you the inverse of your binary heap tree---if that's even what the interviewer meant by *inverting*.
 
 ## Other interpretations
 
