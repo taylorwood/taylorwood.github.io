@@ -1,0 +1,138 @@
+---
+layout: post
+title:  "clojure.spec for functions by example"
+date:   2017-10-15 12:00:00
+tags:   clojure spec fspec fdef
+---
+
+_Here are some illustrative examples of spec'n out functions: their inputs, outputs, and the relationships between them._
+
+# Simple Input & Output
+
+We have a simple function that takes a single argument and returns a set:
+```clojure
+(defn digits
+  "Takes just an int and returns the set of its digit characters."
+  [just-an-int]
+  (into #{} (str just-an-int)))
+```
+
+Function specs are typically defined with `s/fdef`. Let's provide a spec for the arguments:
+```clojure
+(s/fdef digits
+        :args (s/cat :just-an-int int?))
+```
+Function arguments are generally spec'd using `s/cat`, treating the arguments as a tagged concatenation. Here we only have one argument and we want it to be an integer.
+
+We can now `instrument` the function to assert calls against its `:args` spec:
+```clojure
+(stest/instrument `digits)
+```
+
+This only covers the function's _inputs_. We can also spec the return value:
+```clojure
+(s/fdef digits
+        :args (s/cat :just-an-int int?)
+        :ret (s/coll-of char? :kind set? :min-count 1))
+```
+With a `:ret` spec, we can now `check` the function against our spec with generative tests:
+```clojure
+(stest/check `digits)
+```
+
+# Keyword Arguments
+
+There's a `s/keys*` macro that works for kwargs, similarly to how `s/keys` works for maps.
+
+```clojure
+(defn big-fun
+  [why where & {:keys [which-what which what]}]
+  (format "%s %s %s %s %s" why where which-what which what))
+
+(s/fdef big-fun
+        :args (s/cat :why #(instance? LocalDateTime %)
+                     :where string?
+                     :kwargs (s/keys* :req-un [(or ::which-what
+                                                   (and ::which ::what))])))
+
+(stest/instrument `big-fun)
+(big-fun (LocalDateTime/now) "My Place" :which 1 :what 4) ;; valid
+(big-fun (LocalDateTime/now) "My Place" :which-what nil)  ;; also valid
+```
+Here we defined a kwargs spec that requires either a `:which-what` key _or_ a `:which` key and `:what` key, just like we could've done for a map.
+
+# Multi-arity & Variadic Functions
+
+We can spec multi-arity functions using `s/alt` to define the alternate cases, and variadic functions using `s/*`. Here's a function with two fixed arities and one variadic arity:
+```clojure
+(defn such-arity
+  ([] "nullary")
+  ([one] "unary")
+  ([one two & many] "one two many"))
+
+(s/fdef such-arity
+        :args (s/alt :nullary (s/cat)
+                     :unary (s/cat :one any?)
+                     :variadic (s/cat :one any?
+                                      :two any?
+                                      :many (s/* any?))))
+```
+We can spec the zero-arity with `(s/cat)`; no arguments. We specify the variadic arguments with `s/*`. The "regex" specs _compose_ to match a single sequence. This composition of `s/cat` and `s/*` produces a spec that wants a sequence of two arguments and then _any number_ of additional arguments.
+
+# Higher-Order Functions
+
+This is an only slightly different, more involved example than [the one in the clojure.spec guide](https://clojure.org/guides/spec#_higher_order_functions).
+
+Here's a spec for a function that takes _any_ two arguments and returns one of them:
+```clojure
+(s/def ::pick-fn
+  (s/with-gen
+    (s/fspec :args (s/cat :a any? :b any?)
+             :ret any?
+             :fn #(or (= (:ret %) (:a (:args %)))
+                      (= (:ret %) (:b (:args %)))))
+    #(gen/return (fn [a b] (rand-nth [a b])))))
+```
+This spec is "free standing" in the sense that it's registered to a keyword rather than a function symbol via `s/fdef`. This is defined via `s/def` and `s/fspec` (not `s/fdef`) because I want to use this function spec in more than one place, and specify a custom generator. The generator returns a function that returns one of its arguments randomly.
+
+Notice the additional `:fn` spec that asserts the returned value is one of the input values. This spec will be checked when we `check` the function with generative tests.
+
+How about this for some implementation of `::pick-fn`:
+```clojure
+(defn battle
+  "Returns the victor."
+  [contestant-1 contestant-2]
+  (if (even? (System/nanoTime)) contestant-1 contestant-2))
+```
+Now I want to associate the `::pick-fn` spec with `battle` function. We can achieve the same effect as `(s/fdef battle ...)` with `s/def`:
+```clojure
+(s/def battle ::pick-fn)
+(stest/instrument `battle)
+(stest/check `battle)
+```
+
+Now let's write a higher-order function to take a `::pick-fn`-conformant function and a collection:
+```clojure
+(defn winners
+  "Uses f to pick a successor between each element of coll, returning sequence of successors."
+  [f coll]
+  (rest (reductions f coll)))
+(winners battle (range 20))
+;;=> (0 0 0 0 4 4 6 6 6 6 10 10 10 10 14 14 14 14 14 19)
+```
+And a spec for the function:
+```clojure
+(s/fdef winners
+        :args (s/cat :f ::pick-fn
+                     :coll (s/coll-of any? :min-count 2))
+        :ret coll?
+        :fn (fn [{:keys [args ret]}]
+              (and (= (count ret) (dec (count (:coll args))))
+                   (set/subset? (set ret) (set (:coll args))))))
+(stest/instrument `winners)
+(stest/check `winners)
+```
+
+The `winners` function has some odd invariants. The `f` arg must conform to `::pick-fn` and `coll` must have at least two elements. Additionally, the relationship between inputs and outputs for `winners` is expressed in the `:fn` spec:
+1. It should always return a collection that has one less element than the input collection. This is because the first "pick" is for the first two input elements.
+2. The returned elements should be a subset of the input elements.
