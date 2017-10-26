@@ -122,9 +122,8 @@ blockquote {
 pre,
 code {
     font-size: 15px;
-    border-radius: 4px;
-    background-color: #132f39;
-    color: #64e9f4;
+    border: 1px solid $grey-color-light;
+    border-radius: 3px;
 }
 
 code {
