@@ -190,12 +190,16 @@ pre {
 
     > svg {
         display: inline-block;
-        width: 16px;
-        height: 16px;
+        width: 24px;
+        height: 24px;
         vertical-align: middle;
 
         path {
             fill: $grey-color;
         }
     }
+}
+
+.icon--github {
+    padding-right: 3px;
 }
