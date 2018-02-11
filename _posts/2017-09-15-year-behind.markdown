@@ -14,9 +14,9 @@ I was working mostly with .NET at the time so F# was a natural choice for functi
 
 <img src="/img/oh-lawd.jpeg" style="float: right; max-width: 250px; margin: 10px" />
 
-My new language was [Clojure](https://clojure.org) and it was totally foreign. So many parentheses instead of semantic whitespace. No rigid type system to hold me close. How am I going to deal with these parentheses? _(Thank you, Parinfer.)_
+My new language was [Clojure](https://clojure.org) and it was totally foreign. So many parentheses instead of semantic whitespace. No rigid type system to keep me honest. How am I going to deal with these parentheses? _(Thank you, [Parinfer!](https://shaunlebron.github.io/parinfer/))_
 
-While this was another functional language, it encouraged a very different style of programming---one I wasn't used to and thought I wouldn't like. The chaotic ambiguity of dynamic typing. How am I supposed to feel my program is even possibly correct if the compiler isn't telling me so? ML is so expressive in its ability to model a problem domain with algebraic data types. How could I ever do without it?
+While this was another functional language, it encouraged a very different style of programming---one I thought I wouldn't like with all the ambiguity of dynamic typing. How am I supposed to feel my program is even possibly correct if the compiler isn't telling me so? ML is so expressive in its ability to model a problem domain with algebraic data types, and for the most part isn't littered with type hints thanks to inference.
 
 ## First Impressions
 
@@ -200,19 +200,49 @@ Some functional languages go to lengths to cordon null/nil values. Clojure embra
 
 I do miss [nullable comparison operators](https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/symbol-and-operator-reference/nullable-operators) and I wish there was something like F#'s `Option` module, but it's just a matter of defining your own functions to do the same.
 
-There are many nil-friendly core functions, and some nil-adverse functions too. It's not something I have to worry about much, but a nil-propagation bug can be hard to debug when it happens.
+There are many nil-friendly core functions, and some nil-adverse functions too. It's not always clear which functions will happily propagate nils and which ones will throw exceptions, so I often find myself experimenting in the REPL to find out. It's not something I have to worry about much, but a nil-propagation bug can be hard to debug when it happens. Personally, I'd rather see less nil-propagation in the Clojure core libraries but it does make sense in many cases.
+
+### Metadata
+
+Clojure can attach [metadata](https://clojure.org/reference/metadata) to objects. You can use `with-meta` (or a prefix syntax `^`) to tag objects with metadata. The object/value will still present itself to callers as before, but now it has a secret bag (map) of goodies and you can inspect it with the `meta` function.
+
+For example, a function to pad the left side of a collection that also returns metadata for the number of padding items:
+
+```clojure
+(defn left-pad [n p s]
+  (let [diff (- n (count s))]
+    (with-meta (concat (repeat diff p) s)
+               {:padding diff})))
+(left-pad 5 0 [1 2 3])
+=> (0 0 1 2 3) ;; looks like a typical result
+(meta (left-pad 5 0 [1 2 3]))
+=> {:padding 2} ;; but it has metadata too
+```
+
+The metadata facilities are also commonly used for compiler type hints, docstrings, deprecation tags, etc. In fact, that `left-pad` function itself has been decorated with a bunch of metadata behind-the-scenes, including its definition location down to the line and column!
+
+```clojure
+(meta #'left-pad) ;; #' gets the Var of the function definition
+=>
+{:arglists ([n p s]),
+ :line 8,
+ :column 1,
+ :file "/Users/Taylor/Projects/playground/src/playground/core.clj",
+ :name left-pad,
+ :ns #object[clojure.lang.Namespace 0x547b55b7 "playground.core"]}
+```
 
 ## REPL-driven Development
 
 I didn't use the F# REPL that much for interactive _development_ as much as I did for interactive execution. The Clojure REPL experience is far more ingrained into my development workflow, and I like it. I feel I'm more of an inhabitant of the program as I write it rather than an observant designer. I also get more immediate feedback about the runtime behavior of code, which can be hard to reason about in functional languages.
 
-I think there's another reason for the REPL being so integral to the Clojure development experience: discovery through interaction. Clojure just doesn't have the information I would normally get via type definitions (and IntelliSense/auto-complete). In Clojure it's more natural to get that information by playing with the code in hand. Doc strings help but they aren't schematics. Again, another area where clojure.spec may change the landscape.
+I think there's another reason for the REPL being so integral to the Clojure development experience: discovery through interaction. Clojure just doesn't have the information I would normally get via type definitions (and IntelliSense/auto-complete). In Clojure it's more natural to get that information by playing with the code in-hand. Doc strings help but they aren't schematics. Again, another area where clojure.spec can change the landscape.
 
-I haven't tried this, but I've heard you can be so bold as to have a deployed application host a network REPL which can be used to remotely inspect (and monkey with) the running application's code and state. 😮
+I haven't tried this, but I've heard you can be so bold as to have a [deployed application host a network REPL](https://stackoverflow.com/questions/48209370/sending-message-to-clojure-application-from-terminal/48209930#48209930) which can be used to remotely inspect (and monkey with) the running application's code and state. 😮
 
 ### Debugging
 
-I used the interactive debugger much more often with F#. I've only tried to interactively debug Clojure once or twice. It's possible but I find it's just easier to rely on REPL evaluation and `printf` debugging in most scenarios. I don't get the feeling interactive debuggers are a hot topic in the Clojure community.
+I used an interactive debugger much more often with F#. I've only tried to interactively debug Clojure once or twice. It's possible but I find it's just easier to rely on REPL evaluation, `printf` debugging, and break-like macros in most scenarios. I don't get the feeling interactive debuggers are a hot topic in the Clojure community, but I've seen this trip up others that were used to setting breakpoints, watches, etc. in imperative languages.
 
 ## Invariants
 
@@ -220,11 +250,17 @@ One of my favorite things about more strongly-typed functional languages is the 
 
 Clojure feels very open and permissive when it comes to data and passing it around. The thought that a caller could pass _anything_ as an argument was unsettling at first.
 
-Clojure does allow you to define pre- and post-condition metadata on functions for call assertions, but they don't seem common in practice and they only work at _runtime_. clojure.spec allows much more powerful assertions, but again only at runtime and strictly opt-in.
+Clojure does allow you to define pre- and post-condition metadata on functions for call assertions, but they don't seem common in practice and they only work at _runtime_. Clojure.spec allows more powerful assertions, but again only at runtime and strictly opt-in.
 
-As I embraced this _laissez faire_ approach, the Clojure lifestyle started to make sense. Clojure codebases are driven more by convention than contract. In F# I mostly thought about problems in terms of the types I'd use to model them, essentially defining a contract. If my program compiled I could be fairly certain it'd do at least something like what I intended. This meant putting a lot of upfront thought into the _types_ I'd need to model the problem.
+As I embraced this _laissez faire_ approach, the Clojure philosophy started to make sense. Clojure codebases are driven more by convention than contract. In F# I mostly thought about problems in terms of the types I'd use to model them, essentially defining a contract. If my program compiled I could be fairly certain it'd do at least something like what I intended. This meant putting a lot of upfront thought into the _types_ I'd need to model the problem.
 
 In Clojure I find myself doing the opposite---just diving into the REPL and immediately writing code that operates on data. That same code can be sculpted into tests (if I'm not too lazy) and ultimately end up in production.
+
+### Refactoring
+
+In my experience---and related to the topic of invariants---non-trivial Clojure is harder to refactor than comparable F# code. This isn't hard to imagine since there are no guardrails ensuring your functions/types are staying aligned with your assumptions. Yes, you can use clojure.spec but it's still in alpha and is also totally opt-in unlike static type systems.
+
+I've felt this pain a few times and the only conclusions I've drawn are to use clojure.spec for non-trivial code, especially around domain boundaries, and try even harder to solve very small problems in a way that composes to solve larger ones. This way your small-problem code is more likely to be "obviously correct" and more stable (or less likely to require adaptation). The best example of this approach I can point to is clojure.core itself, although it doesn't have to worry itself with messy "business" domains.
 
 ## Parenthetical Gestalt!
 
