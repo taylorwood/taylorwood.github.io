@@ -38,6 +38,8 @@ The reality of the Clojure language design started to sink in. The language itse
 
 I was able to easily dive into clojure.core source interactively while I coded, which usually required third-party tools for FSharp.Core and .NET in general. I do find myself reading more third-party Clojure code out of necessity, a little more than I needed to with F#/.NET, and I chalk it up to needing to read code to see what it _does_ rather than making assumptions based on the _types_ it works on.
 
+<div class="thinking-separator"><div></div></div>
+
 ## Keywords
 
 These are everywhere in Clojure. I think of these as more-or-less interned strings that are granted some special abilities.
@@ -138,6 +140,8 @@ All this destructuring is also available in function argument signatures! This a
 
 Destructurings can be nested but it becomes unreadable two–three levels deep.
 
+<div class="thinking-separator"><div></div></div>
+
 ## Data
 
 Clojure and F# have similar data structures but working with them in Clojure feels lower-ceremony. The literal syntax is nice and terse and all the basic data structures can be conveniently composed and transformed.
@@ -234,6 +238,8 @@ The metadata facilities are also commonly used for compiler type hints, docstrin
  :ns #object[clojure.lang.Namespace 0x547b55b7 "playground.core"]}
 ```
 
+<div class="thinking-separator"><div></div></div>
+
 ## REPL-driven Development
 
 I didn't use the F# REPL that much for interactive _development_ as much as I did for interactive execution. The Clojure REPL experience is far more ingrained into my development workflow, and I like it. I feel I'm more of an inhabitant of the program as I write it rather than an observant designer. I also get more immediate feedback about the runtime behavior of code, which can be hard to reason about in functional languages.
@@ -245,6 +251,8 @@ I haven't tried this, but I've heard you can be so bold as to have a [deployed a
 ### Debugging
 
 I used an interactive debugger much more often with F#. I've only tried to interactively debug Clojure once or twice. It's possible but I find it's just easier to rely on REPL evaluation, `printf` debugging, and break-like macros in most scenarios. I don't get the feeling interactive debuggers are a hot topic in the Clojure community, but I've seen this trip up others that were used to setting breakpoints, watches, etc. in imperative languages.
+
+<div class="thinking-separator"><div></div></div>
 
 ## Invariants
 
@@ -279,6 +287,8 @@ Clojure does allow you to define pre- and post-condition functions for assertion
 ```
 
 I suspect clojure.spec's function instrumentation would mostly deprecate pre- and post-conditions, but I'm just guessing.
+
+<div class="thinking-separator"><div></div></div>
 
 ## (Parenthetical Gestalt!)
 
