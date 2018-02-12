@@ -6,6 +6,8 @@ tags:   clojure lisp
 ---
 A lot has changed since my last post nearly a year ago. I want to write about my experience coming from a ML-family language to a Lisp. It's not going to be very informative as a tutorial; it's mostly scattershot notes and things I've found interesting along the way.
 
+> _Updated 2018-02-11: Added notes on metadata, pre-/post-conditions, and refactoring._
+
 ## Background
 
 My very first exposure to functional programming was through a book called [The Little Schemer](https://mitpress.mit.edu/books/little-schemer): a fairly thin, flourescent, mind-melting paperback that I'm not quite sure how I came upon. I'd been programming for ten years but it was like my inner programmer was reincarnated.
@@ -246,11 +248,9 @@ I used an interactive debugger much more often with F#. I've only tried to inter
 
 ## Invariants
 
-One of my favorite things about more strongly-typed functional languages is the ability to _make illegal states unrepresentable._ In Clojure it's very hard to make illegal states unrepresentable, in fact I'd say it's just not worth the effort. In ML variants it's harder to write a program that compiles but doesn't work; I quickly found in Clojure it's quite easy to write a program that compiles and doesn't work.
+One of my favorite things about more strongly-typed functional languages is the ability to _make illegal states unrepresentable._ In Clojure it's very hard to make illegal states unrepresentable, in fact I'd say in most cases it's just not worth the effort. In ML variants it's somewhat difficult to write a program that compiles but doesn't work on some level; I quickly found in Clojure it's quite easy to write a program that compiles but doesn't work at all.
 
 Clojure feels very open and permissive when it comes to data and passing it around. The thought that a caller could pass _anything_ as an argument was unsettling at first.
-
-Clojure does allow you to define pre- and post-condition metadata on functions for call assertions, but they don't seem common in practice and they only work at _runtime_. Clojure.spec allows more powerful assertions, but again only at runtime and strictly opt-in.
 
 As I embraced this _laissez faire_ approach, the Clojure philosophy started to make sense. Clojure codebases are driven more by convention than contract. In F# I mostly thought about problems in terms of the types I'd use to model them, essentially defining a contract. If my program compiled I could be fairly certain it'd do at least something like what I intended. This meant putting a lot of upfront thought into the _types_ I'd need to model the problem.
 
@@ -258,14 +258,32 @@ In Clojure I find myself doing the opposite---just diving into the REPL and imme
 
 ### Refactoring
 
-In my experience---and related to the topic of invariants---non-trivial Clojure is harder to refactor than comparable F# code. This isn't hard to imagine since there are no guardrails ensuring your functions/types are staying aligned with your assumptions. Yes, you can use clojure.spec but it's still in alpha and is also totally opt-in unlike static type systems.
+In my experience---and related to the topic of invariants---non-trivial Clojure can be more difficult to refactor than similar F# code. This isn't hard to imagine since there are no guardrails ensuring your functions/types stay aligned with your assumptions. (Yes, you can use clojure.spec but it's still in alpha and is also totally opt-in unlike static type systems.)
 
-I've felt this pain a few times and the only conclusions I've drawn are to use clojure.spec for non-trivial code, especially around domain boundaries, and try even harder to solve very small problems in a way that composes to solve larger ones. This way your small-problem code is more likely to be "obviously correct" and more stable (or less likely to require adaptation). The best example of this approach I can point to is clojure.core itself, although it doesn't have to worry itself with messy "business" domains.
+I've felt this pain a few times and the only conclusions I've drawn are to use clojure.spec for non-trivial code, especially around domain boundaries, and try even harder to solve very small problems in ways that can compose to solve larger ones. This way your small-problem code is more likely to be "obviously correct" and more stable (or less likely to require adaptation). The best example of this approach I can point to is clojure.core itself, although it doesn't have to worry itself with messy "business" domains.
 
-## Parenthetical Gestalt!
+### Pre- and Post-conditions
+
+Clojure does allow you to define pre- and post-condition functions for assertions on inputs and output, but they don't seem very common in practice and they only work at _runtime_.
+
+```clojure
+(defn product-str [& nums]
+  {:pre  [(every? number? nums)] ;; every input must be a number
+   :post [(string? %)]}          ;; output must be a string
+  (str (apply * nums)))
+
+(product-str 1 1/2 3.0 4 5)
+=> "30.0"
+(product-str 1 2 "3")
+;; throws "CompilerException java.lang.AssertionError: Assert failed: (every? number? nums), compiling ..."
+```
+
+I suspect clojure.spec's function instrumentation would mostly deprecate pre- and post-conditions, but I'm just guessing.
+
+## (Parenthetical Gestalt!)
 
 It's the carefully and conservatively curated confluence (alliteration achievement unlocked 🏅) of Clojure's design decisions and philosophies, _especially_ those that were hard for me to embrace at first, that make it such an enjoyable programming experience for me.
 
 I pre-judged Clojure for being a dynamic language because I'd never enjoyed working in a dynamic language before. As I look back on the things I thought I'd miss from a strongly typed language, I can easily say I've faired just as well without them.
 
-_There were a bunch of other cool Clojure tidbits I wanted to mention but this post was getting too long!_
+P.S. There were a bunch of other cool Clojure tidbits I wanted to mention but this post was getting too long!
