@@ -5,7 +5,7 @@ date:   2017-10-15 12:00:00
 tags:   clojure spec fspec fdef
 ---
 
-_Here are some illustrative examples of spec'n out functions: their inputs, outputs, and the relationships between them._
+Clojure.spec for functions by example: their inputs, outputs, and the relationships between them. Updated 3/26/2018.
 
 # Simple Input & Output
 
@@ -19,10 +19,9 @@ We have a simple function that takes a single argument and returns a set:
 
 Function specs are typically defined with `s/fdef`. Let's provide a spec for the arguments:
 ```clojure
-(s/fdef digits
-        :args (s/cat :just-an-int int?))
+(s/fdef digits :args (s/cat :just-an-int int?))
 ```
-Function arguments are generally spec'd using `s/cat`, treating the arguments as a tagged concatenation. Here we only have one argument and we want it to be an integer.
+Function argument lists can be spec'd with `s/cat`, treating the arguments as a tagged concatenation or sequence. (If you think about it, `defn` function arguments are just a vector, man.) Here we only have one argument and we want it to be an integer. Note that the function's argument names and the keywords used to describe them in the `s/cat` spec do not have to match, though they do in this example.
 
 We can now `instrument` the function to assert calls against its `:args` spec:
 ```clojure
@@ -93,9 +92,9 @@ Here's a spec for a function that takes _any_ two arguments and returns one of t
                       (= (:ret %) (:b (:args %)))))
     #(gen/return (fn [a b] (rand-nth [a b])))))
 ```
-This spec is "free standing" in the sense that it's registered to a keyword rather than a function symbol via `s/fdef`. This is defined via `s/def` and `s/fspec` (not `s/fdef`) because I want to use this function spec in more than one place, and specify a custom generator. The generator returns a function that returns one of its arguments randomly.
+This function spec is registered to a qualified keyword rather than a function symbol via `s/fdef`. This is defined with `s/def` and `s/fspec` because I want to use this function spec in more than one place, and specify a custom generator. Notice the additional `:fn` spec that asserts the returned value is one of the input values. This spec will be checked when we `check` the function with generative tests.
 
-Notice the additional `:fn` spec that asserts the returned value is one of the input values. This spec will be checked when we `check` the function with generative tests.
+I use `s/with-gen` to specify a custom generator that returns a function that returns one of its arguments randomly. I could however just allow spec to create a function generator from my function spec; the generated functions would return random samples of its `:ret` spec, and any calls would have their arguments asserted against its `:args` spec. A spec-generated function would not be desirable in this contrived example because we want to ensure the function always returns something it was given.
 
 How about this for some implementation of `::pick-fn`:
 ```clojure
@@ -136,3 +135,41 @@ And a spec for the function:
 The `winners` function has some odd invariants. The `f` arg must conform to `::pick-fn` and `coll` must have at least two elements. Additionally, the relationship between inputs and outputs for `winners` is expressed in the `:fn` spec:
 1. It should always return a collection that has one less element than the input collection. This is because the first "pick" is for the first two input elements.
 2. The returned elements should be a subset of the input elements.
+
+## Run-time Checking
+
+### Instrumentation
+
+You can call `instrument` with no arguments to instrument all loaded/instrumentable vars, and you may want to do this at dev/test time but not in production to avoid performance penalties. One convenient solution is to have a separate dev/test entrypoint in your program that calls `instrument` after the relevant namespaces are loaded. Another option with Leinengen is to use `:injections` in your `project.clj` under specific profile(s):
+```clojure
+:injections [(require 'lib.core) ;; all instrumented fns should be loaded here
+             (require 'clojure.spec.test.alpha)
+             (clojure.spec.test.alpha/instrument)]
+```
+
+Spec's `instrument` only checks function inputs (`:args` specs). Alternatively, the [Orchestra](https://github.com/jeaye/orchestra) library has a drop-in replacement that also checks `:ret` and `:fn` specs.
+
+### `:pre` and `:post` checks
+
+This will throw an `AssertionError` if called with any non-nil, non-string value:
+```clojure
+(defn stringer-bell
+  "Prints a string and rings bell."
+  [s]
+  {:pre [(s/valid? (s/nilable string?) s)]}
+  (println s "\007"))
+```
+
+### Asserting
+
+There's also `s/assert` which can be used in function bodies:
+```clojure
+(defn stringer-bell [s]
+  (s/assert (s/nilable string?) s)
+  (println s "\007"))
+```
+You need to enable spec's off-by-default assertion checking for this to have an effect:
+```clojure
+(s/check-asserts true)
+```
+`s/assert` will throw a more detailed exception than a `:pre`/`:post` condition, although be careful not to use `s/assert` there: it returns valid values and if the spec allows nil, the condition will fail when a valid nil is passed.
