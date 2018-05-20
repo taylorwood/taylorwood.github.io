@@ -5,7 +5,9 @@ date:   2018-05-02 12:00:00
 tags:   graalvm clojure native
 ---
 
-With the recent release of GraalVM it's now possible to compile programs ahead-of-time into a native executable for JVM-based languages. Along with this comes pretty radical implications with regard to startup time, artifact size, runtime performance, etc. Read [this article](https://www.innoq.com/en/blog/native-clojure-and-graalvm/) first for more information. This post demonstrates the same idea, but directly on macOS rather than within a Linux container.
+With the recent release of GraalVM it's now possible to compile programs ahead-of-time into a native executable for JVM-based languages. Along with this comes pretty radical implications with regard to startup time, artifact size, runtime performance, etc. Read [Jan Stępień's article](https://www.innoq.com/en/blog/native-clojure-and-graalvm/) first for more information. This post demonstrates the same idea, but directly on macOS rather than within a Linux container.
+
+_Update: I created a simple Leiningen plugin [`lein-native-image`](https://github.com/taylorwood/lein-native-image) that uses GraalVM's `native-image` with a project as described below._
 
 Similar to the linked article above, I'll create a simple command line utility program that converts JSON to EDN, starting with a minimal Leiningen `project.clj`:
 ```clojure
@@ -70,7 +72,7 @@ The resulting image:
 $ la jadensmith-0.1.0-SNAPSHOT-standalone
 -rwxr-xr-x  1 taylorwood  44583454   6.8M May  2 06:24 jadensmith-0.1.0-SNAPSHOT-standalone*
 ```
-Only slightly larger than the 4.2M uberjar, but the native image requires no dependencies and has some other interesting properties.
+Only slightly larger than the 4.2M uberjar, but the native image requires no dependencies and has some other interesting properties:
 
 > The resulting program does not run on the Java HotSpot VM, but uses necessary components like memory management, thread scheduling from a different implementation of a virtual machine, called Substrate VM. Substrate VM is written in Java and compiled into the native executable. The resulting program has faster startup time and lower runtime memory overhead compared to a Java VM.
 
