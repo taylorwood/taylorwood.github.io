@@ -7,7 +7,7 @@ tags:   graalvm clojure native
 
 With the recent release of GraalVM it's now possible to compile programs ahead-of-time into a native executable for JVM-based languages. Along with this comes pretty radical implications with regard to startup time, artifact size, runtime performance, etc. Read [Jan Stępień's article](https://www.innoq.com/en/blog/native-clojure-and-graalvm/) first for more information. This post demonstrates the same idea, but directly on macOS rather than within a Linux container.
 
-_Update: I created a simple Leiningen plugin [`lein-native-image`](https://github.com/taylorwood/lein-native-image) that uses GraalVM's `native-image` with a project as described below._
+_**Update 2018-05-25:** I created a simple Leiningen plugin [`lein-native-image`](https://github.com/taylorwood/lein-native-image) that uses GraalVM's `native-image` with a project as described below. I also created a tool [`clj.native-image`](https://github.com/taylorwood/clj.native-image) for projects using deps.edn._
 
 Similar to the linked article above, I'll create a simple command line utility program that converts JSON to EDN, starting with a minimal Leiningen `project.clj`:
 ```clojure
