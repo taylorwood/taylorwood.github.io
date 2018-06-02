@@ -95,4 +95,14 @@ Then with a simple `prewalk` we can interpret the output, ultimately transformin
 => (((2 * 3) + 1 + 2) / 4)
 ```
 
+Update: after reading [this great article by Carin Meier](http://gigasquidsoftware.com/blog/2013/05/01/growing-a-language-with-clojure-and-instaparse/) I saw Instaparse provides a convenient `transform` function that can be passed a map from tags to value-interpreter functions:
+```clojure
+(instaparse.transform/transform
+  {:PAR list
+   :VAL #(Integer/parseInt %)
+   :OP symbol}
+  (expr-parser "1+(2+3)*(3/3)"))
+=> (1 + (2 + 3) * (3 / 3))
+```
+
 Happy parsing!
