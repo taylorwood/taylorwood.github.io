@@ -5,9 +5,9 @@ date:   2017-10-15 12:00:00
 tags:   clojure spec fspec fdef
 ---
 
-Clojure.spec for functions by example: their inputs, outputs, and the relationships between them. Updated 3/26/2018.
+Clojure.spec for functions by example: their inputs, outputs, and the relationships between them. Updated 9/6/2018.
 
-# Simple Input & Output
+## Simple Input & Output
 
 We have a simple function that takes a single argument and returns a set:
 ```clojure
@@ -39,7 +39,7 @@ With a `:ret` spec, we can now `check` the function against our spec with genera
 (stest/check `digits)
 ```
 
-# Keyword Arguments
+## Keyword Arguments
 
 There's a `s/keys*` macro that works for kwargs, similarly to how `s/keys` works for maps.
 
@@ -60,7 +60,7 @@ There's a `s/keys*` macro that works for kwargs, similarly to how `s/keys` works
 ```
 Here we defined a kwargs spec that requires either a `:which-what` key _or_ a `:which` key and `:what` key, just like we could've done for a map.
 
-# Multi-arity & Variadic Functions
+## Multi-arity & Variadic Functions
 
 We can spec multi-arity functions using `s/alt` to define the alternate cases, and variadic functions using `s/*`. Here's a function with two fixed arities and one variadic arity:
 ```clojure
@@ -78,7 +78,7 @@ We can spec multi-arity functions using `s/alt` to define the alternate cases, a
 ```
 We can spec the zero-arity with `(s/cat)`; no arguments. We specify the variadic arguments with `s/*`. The "regex" specs _compose_ to match a single sequence. This composition of `s/cat` and `s/*` produces a spec that wants a sequence of two arguments and then _any number_ of additional arguments.
 
-# Higher-Order Functions
+## Higher-Order Functions
 
 This is an only slightly different, more involved example than [the one in the clojure.spec guide](https://clojure.org/guides/spec#_higher_order_functions).
 
@@ -135,6 +135,44 @@ And a spec for the function:
 The `winners` function has some odd invariants. The `f` arg must conform to `::pick-fn` and `coll` must have at least two elements. Additionally, the relationship between inputs and outputs for `winners` is expressed in the `:fn` spec:
 1. It should always return a collection that has one less element than the input collection. This is because the first "pick" is for the first two input elements.
 2. The returned elements should be a subset of the input elements.
+
+### Warning
+
+Any function `g` you pass into a higher-order, instrumented function `f` may be invoked multiple times as spec tests its conformance! This might be a problem if `g` is expensive or has side effects.
+```clojure
+(defn f [g] (g 1))
+(s/fdef f :args (s/cat :g (s/fspec :args (s/tuple int?))))
+(st/instrument `f)
+```
+
+Now if we call `f` with a side-effecting function (printing text) we can see the given function invoked many times with random inputs — a sort of miniature quick-check.
+```clojure
+(f #(doto % prn inc))
+-1
+0
+-2
+...
+59
+-69770
+-1165
+1
+=> 1
+```
+
+#### Possible Workarounds
+
+Simplify the higher-order function's spec:
+```clojure
+(s/fdef f :args (s/cat :g ifn?))
+```
+
+Or disable the behavior using a dynamic binding in spec:
+```clojure
+(binding [clojure.spec.alpha/*fspec-iterations* 0]
+  (f #(doto % prn inc)))
+1
+=> 1
+```
 
 ## Run-time Checking
 
