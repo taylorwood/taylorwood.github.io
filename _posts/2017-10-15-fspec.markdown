@@ -45,20 +45,21 @@ There's a `s/keys*` macro that works for kwargs, similarly to how `s/keys` works
 
 ```clojure
 (defn big-fun
-  [why where & {:keys [which-what which what]}]
-  (format "%s %s %s %s %s" why where which-what which what))
+  [why when & {:keys [who which what]}]
+  (format "%s %s %s %s %s" why when who which what))
 
 (s/fdef big-fun
-        :args (s/cat :why #(instance? LocalDateTime %)
-                     :where string?
-                     :kwargs (s/keys* :req-un [(or ::which-what
+        :args (s/cat :why string?
+                     :when #(instance? LocalDateTime %)
+                     :kwargs (s/keys* :req-un [(or ::who
                                                    (and ::which ::what))])))
 
 (stest/instrument `big-fun)
-(big-fun (LocalDateTime/now) "My Place" :which 1 :what 4) ;; valid
-(big-fun (LocalDateTime/now) "My Place" :which-what nil)  ;; also valid
+(big-fun "because" (LocalDateTime/now) :which 1 :what 4) ;; valid
+(big-fun "said so" (LocalDateTime/now) :who "I")         ;; also valid
+(big-fun "because" (LocalDateTime/now) :which 1)         ;; invalid
 ```
-Here we defined a kwargs spec that requires either a `:which-what` key _or_ a `:which` key and `:what` key, just like we could've done for a map.
+Here we defined a kwargs spec that requires either a `:who` key _or_ a `:which` key and `:what` key, just like we could've done for a map.
 
 ## Multi-arity & Variadic Functions
 
