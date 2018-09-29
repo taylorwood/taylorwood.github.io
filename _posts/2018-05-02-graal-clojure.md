@@ -5,11 +5,23 @@ date:   2018-05-02 12:00:00
 tags:   graalvm clojure native
 ---
 
-With the recent release of GraalVM it's now possible to compile programs ahead-of-time into a native executable for JVM-based languages. Along with this comes pretty radical implications with regard to startup time, artifact size, runtime performance, etc. Read [Jan Stępień's article](https://www.innoq.com/en/blog/native-clojure-and-graalvm/) first for more information. This post demonstrates the same idea, but directly on macOS rather than within a Linux container.
+[GraalVM](http://www.graalvm.org) makes it possible to compile JVM-based programs ahead-of-time into a native executable,
+with significant improvements to startup time, resource usage, etc.
+This post will demonstrate a CLI tool written in Clojure and compiled to a native binary, and
+compare its performance to the JVM-based version.
 
-_**Update 2018-05-25:** I created a simple Leiningen plugin [`lein-native-image`](https://github.com/taylorwood/lein-native-image) that uses GraalVM's `native-image` with a project as described below. I also created a tool [`clj.native-image`](https://github.com/taylorwood/clj.native-image) for projects using deps.edn._
+_**Update 2018-05-25:** I created a simple Leiningen plugin [`lein-native-image`](https://github.com/taylorwood/lein-native-image)
+to simplify `native-image` usage with Leiningen projects;
+its README has more up-to-date info and additional [example projects](https://github.com/taylorwood/lein-native-image/tree/master/examples).
+I created a similar tool [`clj.native-image`](https://github.com/taylorwood/clj.native-image)
+for use with deps.edn projects.
+This article was written beforehand and assumes neither is used._
 
-Similar to the linked article above, I'll create a simple command line utility program that converts JSON to EDN, starting with a minimal Leiningen `project.clj`:
+This approach is similar to [Jan Stępień's article](https://www.innoq.com/en/blog/native-clojure-and-graalvm/)
+but runs in macOS rather than within a Linux container.
+
+I'll create a simple command line utility program that converts JSON to EDN,
+starting with a minimal Leiningen `project.clj`:
 ```clojure
 (defproject jadensmith "0.1.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.9.0"]
@@ -28,18 +40,25 @@ And the implementation:
 (defn -main [& args]
   (prn (json/read *in* :key-fn keyword)))
 ```
-It just reads JSON from stdin and `prn`'s it to stdout.
+It reads JSON from stdin and prints it to stdout in EDN format.
 
-The linked article covers how to use GraalVM's `native-image` on particular class files, but requires manually copying/unpacking some dependency JARs into the `target` directory beforehand. Fortunately we can avoid that since `native-image` can also use JAR files, so let's just build an uberjar:
+[This article](https://www.innoq.com/en/blog/native-clojure-and-graalvm/)
+shows how to use GraalVM's `native-image` on particular class files,
+but requires manually copying/unpacking some dependency JARs into the `target` directory beforehand.
+We can avoid that since `native-image` can also use JAR files, so let's build an uberjar:
 ```bash
 $ lein uberjar
 ```
 
+_Note: Building an uberjar is unnecessary when using [`lein native-image`](https://github.com/taylorwood/lein-native-image)._
+
 ## Obtaining GraalVM
 
-Now you'll need to obtain [GraalVM EE for macOS](http://www.graalvm.org/downloads/), which is free for evaluation purposes. The CE is not yet available for macOS for technical reasons according to Oracle, but should be available eventually. I downloaded the EE and placed it in some odd directory on my hard drive, then set an environment variable similar to `$JAVA_HOME`:
+Now you'll need to obtain [GraalVM](http://www.graalvm.org/downloads/).
+I downloaded the Community Edition for macOS and placed it in some odd directory on my hard drive,
+then set an environment variable similar to `$JAVA_HOME`:
 ```bash
-export GRAAL_HOME=/path/to/graalvm-1.0.0-rc1/Contents/Home
+export GRAALVM_HOME=/path/to/graalvm-ce-1.0.0-rc6/Contents/Home
 ```
 On macOS, the contents of GraalVM's `Home` directory should look similar to a JDK installation e.g. `Home/bin/java`.
 
@@ -48,7 +67,7 @@ On macOS, the contents of GraalVM's `Home` directory should look similar to a JD
 We can now use `native-image` on the standalone uberjar:
 ```bash
 $ cd target
-$ $GRAAL_HOME/bin/native-image -jar jadensmith-0.1.0-SNAPSHOT-standalone.jar
+$ $GRAALVM_HOME/bin/native-image -jar jadensmith-0.1.0-SNAPSHOT-standalone.jar
 Build on Server(pid: 13184, port: 26681)*
    classlist:   2,240.42 ms
        (cap):   1,690.30 ms
@@ -72,33 +91,52 @@ The resulting image:
 $ la jadensmith-0.1.0-SNAPSHOT-standalone
 -rwxr-xr-x  1 taylorwood  44583454   6.8M May  2 06:24 jadensmith-0.1.0-SNAPSHOT-standalone*
 ```
-Only slightly larger than the 4.2M uberjar, but the native image requires no dependencies and has some other interesting properties:
+It's slightly larger than the 4.2M uberjar, but the native image has no dependency on JRE/JDK
+and has some other interesting properties:
 
 > The resulting program does not run on the Java HotSpot VM, but uses necessary components like memory management, thread scheduling from a different implementation of a virtual machine, called Substrate VM. Substrate VM is written in Java and compiled into the native executable. The resulting program has faster startup time and lower runtime memory overhead compared to a Java VM.
 
-Let's try out the JAR version by feeding it a big JSON input:
+Let's `time` the JAR version by feeding it JSON:
 ```bash
-$ time cat /path/to/big.json | java -jar jadensmith-0.1.0-SNAPSHOT-standalone.jar
+$ /usr/bin/time -l sh -c 'cat test.json | java -jar jadensmith-0.1.0-SNAPSHOT-standalone.jar'
 ...
-java -jar jadensmith-0.1.0-SNAPSHOT-standalone.jar  2.16s user 0.15s system 198% cpu 1.164 total
+        1.02 real         1.79 user         0.11 sys
+ 117514240  maximum resident set size
+8<-----------------------------------
+     32345  page reclaims
+8<-----------------------------------
+         6  signals received
+         4  voluntary context switches
+      2860  involuntary context switches
 ```
 
-Versus the native image:
+Now let's `time` the native image for comparison:
 ```bash
-$ time cat /path/to/big.json | ./jadensmith-0.1.0-SNAPSHOT-standalone
+$ /usr/bin/time -l sh -c 'cat test.json | ./jadensmith-0.1.0-SNAPSHOT-standalone'
 ...
-/jadensmith-0.1.0-SNAPSHOT-standalone  0.02s user 0.01s system 67% cpu 0.040 total
+        0.02 real         0.01 user         0.00 sys
+  10436608  maximum resident set size
+8<-----------------------------------
+      3449  page reclaims
+8<-----------------------------------
+         4  voluntary context switches
+        48  involuntary context switches
 ```
 
-Those are dramatic differences in startup time and CPU usage. Already we can see immediate potential for writing command line utilities in Clojure.
+We can see considerable differences in startup time, CPU usage, and memory usage.
+The JVM version uses ~11x more memory and takes ~10x longer.
+This seems promising for writing native CLI tools in Clojure.
 
 ## Limitations
 
-There are currently some [limitations](http://www.graalvm.org/docs/reference-manual/aot-compilation/#limitations-of-aot-compilation) to GraalVM's native image building:
+There are some [limitations](http://www.graalvm.org/docs/reference-manual/aot-compilation/#limitations-of-aot-compilation)
+to GraalVM's native image building:
 
 > To achieve such aggressive ahead-of-time optimizations, we run an aggressive static analysis that requires a closed-world assumption. We need to know all classes and all bytecodes that are reachable at run time. Therefore, it is not possible to load new classes that have not been available during ahead-of-time-compilation.
 
 There are other limitations on reflection, documented [here](https://github.com/oracle/graal/blob/master/substratevm/LIMITATIONS.md).
+Some of these issues can be worked around with hinting/configuration;
+see [these projects](https://github.com/taylorwood/lein-native-image/tree/master/examples) for examples of such workarounds.
 
 GraalVM's `native-image` has a flag to treat these issues as exceptions at run-time, instead of its default behavior of failing to build. Hopefully some of these limitations will be lifted over time, and GraalVM can support more non-trivial Clojure apps out-of-the-box.
 
