@@ -5,11 +5,14 @@ date:   2018-05-10 12:00:00
 tags:   clojure logic core logic core.logic
 ---
 
-Logic and constraint-based programming have always interested me, which might explain why I like writing SQL queries so much. This post will cover some problems I've solved with Clojure's [core.logic](https://github.com/clojure/core.logic).
+This post covers some toy problems I've solved with Clojure's [core.logic](https://github.com/clojure/core.logic).
 
 ## Introduction
 
-The idea that you can describe a problem declaratively and have a program give you an exhaustive set of answers is a bit mindblowing. For some problems, a "mechanical" solution might require much more code, and maybe much more complex code. I love trying to think about problems in this way, even if logic programming isn't always the most appropriate solution.
+Logic and constraint-based programming interest me, which might explain why I like writing SQL queries so much.
+The idea that you can describe a problem declaratively and have a program give you an exhaustive set of answers is a bit mindblowing.
+For some problems, a "mechanical" solution might require much more code, and maybe much more complex code.
+I love trying to think about solutions in this way, even if logic programming isn't always the most appropriate solution.
 
 See [this primer](https://github.com/clojure/core.logic/wiki/A-Core.logic-Primer) for basics, but I'll say here the basic starting point for core.logic is usually the `run*` or `run` form, with binding(s) that you want to solve for:
 ```clojure
@@ -53,7 +56,6 @@ Using that we can write a `nonconseco` goal to recursively constrain the input:
 The third case in the `conde` defines three "fresh" logic variables for us to work with: `lhead` and `ltail` will be constrained to the first item of `l` and the rest of `l` respectively, by passing all three to `conso`. `lsecond` is constrained by our new `secondo` goal. Then we constrain `lhead` and `lsecond` to be unequal. Finally we recurse `nonconseco` with the the tail of `l` as its new input.
 
 Those are the only two goals we need to define to make this work. Now we can just wrap it in a function and call it:
-
 ```clojure
 (defn non-consecutive [coll]
   (first
@@ -137,3 +139,27 @@ And now let's find all the ways we can make 14 out of denominations 1, 2, 5, and
  {10 0, 5 1, 2 4, 1 1})
 ```
 🤯
+
+## Relational Flatten
+
+How about a slower, more convoluted version of clojure.core's `flatten` using only relational goals?
+```clojure
+(defn flatteno [l g]
+  (condu
+    [(emptyo l) (emptyo g)]
+    [(fresh [h t]
+       (conso h t l)
+       (fresh [ft]
+         (flatteno t ft)
+         (condu
+           [(fresh [fh]
+              (flatteno h fh)
+              (appendo fh ft g))]
+           [(conso h ft g)])))]))
+
+(defn logical-flatten [coll]
+  (first (run 1 [q] (flatteno coll q))))
+
+(logical-flatten '(((((1) 2)) 3) (4) 5 6 ((() 7)) 8 9))
+=> (1 2 3 4 5 6 7 8 9)
+```
