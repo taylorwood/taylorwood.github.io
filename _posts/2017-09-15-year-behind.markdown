@@ -4,13 +4,13 @@ title:  "A Year in Clojure"
 date:   2017-09-15 12:00:00
 tags:   clojure lisp
 ---
-A lot has changed since my last post nearly a year ago. I want to write about my experience coming from a ML-family language to a Lisp. It's not going to be very informative as a tutorial; it's mostly scattershot notes and things I've found interesting along the way.
+A lot has changed since my last post nearly a year ago. I want to write about my experience coming from a ML-family language to a Lisp. It's not very informative as a tutorial; it's mostly scattershot notes and things I've found interesting along the way.
 
-> _Updated 2018-02-11: Added notes on metadata, pre-/post-conditions, and refactoring._
+> _Updated 2018-10-04: Some corrections from feedback. 2018-02-11: Added notes on metadata, pre-/post-conditions, and refactoring._
 
 ## Background
 
-My very first exposure to functional programming was through a book called [The Little Schemer](https://mitpress.mit.edu/books/little-schemer): a fairly thin, flourescent, mind-melting paperback that I'm not quite sure how I came upon. I'd been programming for ten years but it was like my inner programmer was reincarnated.
+My first exposure to functional programming was through a book called [The Little Schemer](https://mitpress.mit.edu/books/little-schemer): a fairly thin, flourescent, mind-melting paperback that I'm not quite sure how I came upon. I'd been programming for ten years but reading it was like reincarnating my inner programmer.
 
 I was working mostly with .NET at the time so F# was a natural choice for functional exploration, even though it wasn't a Lisp. After a few years of F# I found myself back in Lispland.
 
@@ -18,7 +18,7 @@ I was working mostly with .NET at the time so F# was a natural choice for functi
 
 My new language was [Clojure](https://clojure.org) and it was totally foreign. So many parentheses instead of semantic whitespace. No rigid type system to keep me honest. How am I going to deal with these parentheses? _(Thank you, [Parinfer!](https://shaunlebron.github.io/parinfer/))_
 
-While this was another functional language, it encouraged a very different style of programming---one I thought I wouldn't like with all the ambiguity of dynamic typing. How am I supposed to feel my program is even possibly correct if the compiler isn't telling me so? ML is so expressive in its ability to model a problem domain with algebraic data types, and for the most part isn't littered with type hints thanks to inference.
+While this was another functional language, it encouraged a very different style of programming --- one I thought I wouldn't like with all the ambiguity of dynamic typing. How am I supposed to feel my program is even possibly correct if the compiler isn't telling me so? ML is so expressive in its ability to model a problem domain with algebraic data types, and for the most part isn't littered with type hints thanks to inference.
 
 ## First Impressions
 
@@ -68,7 +68,7 @@ It's also common to _keywordize_ ingested data structures like JSON objects, XML
 
 ## Arity
 
-The really neat-o thing about Clojure function arities is the ability to define functions of arbitrary arity. In these cases the numerous arguments are bound to a collection: either a vector or a map, and a map can be thought of as a collection of key/value tuples. A basic example of this is the `+` function:
+A really neat-o thing about Clojure functions is the ability to define functions of arbitrary/variadic arity. In these cases the numerous arguments are bound to a collection: either a vector or a map, and a map can be thought of as a collection of key/value tuples. A basic example of this is the `+` function:
 ```clojure
 (+ x y & more)
 ```
@@ -136,7 +136,7 @@ In the "anything goes" spirit, positional destructuring doesn't throw exceptions
 ```
 Here, `z` will simply be nil as there is no third element. The same goes for map destructuring i.e. you just get nil back for keys that aren't in the map.
 
-All this destructuring is also available in function argument signatures! This allows for flexible function signatures and can get a lot of argument destructuring "out of the way" of the function's body---a nice separation of concerns. In some sense, you can imagine all Clojure function argument bindings as a destructured vector.
+All this destructuring is also available in function argument signatures! This allows for flexible function signatures and can get a lot of argument destructuring "out of the way" of the function's body --- a nice separation of concerns. In some sense, you can imagine all Clojure function argument bindings as a destructured vector.
 
 Destructurings can be nested but it becomes unreadable two–three levels deep.
 
@@ -146,7 +146,7 @@ Destructurings can be nested but it becomes unreadable two–three levels deep.
 
 Clojure and F# have similar data structures but working with them in Clojure feels lower-ceremony. The literal syntax is nice and terse and all the basic data structures can be conveniently composed and transformed.
 
-Maps would seem to be Clojure's commonplace record type, even though it has `defrecord` which seems [somewhat deprecated](https://groups.google.com/d/msg/clojure/pnDl4OgzqBM/zjDioSsxkvEJ). Something that bugged me about this initially was there were no guarantees a _record_ (map) would contain what you expected, or that it wouldn't contain a bunch of stuff you _didn't_ expect! I came to realize this doesn't matter in practice as often as I thought.
+Maps would seem to be Clojure's commonplace record type, even though it has `defrecord` ~which seems [somewhat deprecated](https://groups.google.com/d/msg/clojure/pnDl4OgzqBM/zjDioSsxkvEJ)~ _(correction: `defrecord` isn't considered deprecated; structs are)_. Something that bugged me about this initially was there were no guarantees a _record_ (map) would contain what you expected, or that it wouldn't contain a bunch of stuff you _didn't_ expect! I came to realize this doesn't matter in practice as often as I thought.
 
 ### clojure.spec
 
@@ -162,7 +162,16 @@ I hope clojure.spec adoption continues and this kind of opt-in type checking bec
 
 Whatever superlative or diss you might use to describe a Lisp's syntax or lack thereof, it makes one thing evident: your code itself is just data, and data can be _manipulated._ A function at rest is just a list containing other lists and data structures. _Code as data_ was one of the profound enlightenment moments I've had as a programmer, and one that can't be realized in most popular languages.
 
-Clojure's macros allow you to work with code as data. Much of Clojure's core functionality is written as macros that get _expanded_ into final forms before evaluation. F# has some metaprogramming facilities but they're clunky (and fragmented depending on what kind of syntax tree you want).
+Clojure's macros allow you to work with code as data. Much of Clojure's core functionality is written as macros that get _expanded_ into final forms at compile-time, before evaluation. For example, another thing that delighted me was seeing that language constructs as fundamental as [`and`](https://github.com/clojure/clojure/blob/841fa60b41bc74367fb16ec65d025ea5bde7a617/src/clj/clojure/core.clj#L834)/`or` are defined in clojure.core. For example, here's a simplified version of the `and` macro:
+```clojure
+(defmacro and [x & next]
+  `(let [and# ~x]
+     (if and# (and ~@next) and#)))
+```
+I'd never worked with a language in which you could peer into such fundamental constructs, and it opened my mind to what else was possible. Indeed you can read through [clojure.core](https://github.com/clojure/clojure/blob/clojure-1.9.0/src/clj/clojure/core.clj) top-to-bottom and see much of the language bootstrap itself into existence.
+
+F# has some metaprogramming facilities but they're comparatively clunky (and fragmented depending on what kind of syntax tree you want). 
+Accomplishing similar metaprogramming in F# is [much more involved](https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/code-quotations#code).
 
 I don't often write new macros, and it's not advised to write macros where functions work just as well, but they're invaluable in certain contexts.
 
@@ -188,7 +197,7 @@ Lately I find myself thinking more in terms of _data_ than procedural code. For 
   "Low"    0)
  ```
 
- This can also be expressed as a map, and that map can be used as a _function_ that returns the matched key's value. This code has the same effect as the `case` above:
+ This can also be expressed as a map, and that map can be used as a _function_ that returns the matched key's value. This code has roughly the same effect as the `case` above:
 ```clojure
 (def foo
   {"High"   100
@@ -197,6 +206,7 @@ Lately I find myself thinking more in terms of _data_ than procedural code. For 
 (some foo "Medium") => 50
 ```
 Here we're passing the map `foo` as a _function_ to `some`, which will return the first value of the matching key.
+_An important detail is that `case` works more like a `switch` statement with fast equality checks/jumps, and will throw an exception by default if no match is found._
 
 This approach is nice when you want to define some "rules" in one place and it use them in many, or maybe it's loaded from a database or configuration file.
 
@@ -206,7 +216,7 @@ Some functional languages go to lengths to cordon null/nil values. Clojure embra
 
 I do miss [nullable comparison operators](https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/symbol-and-operator-reference/nullable-operators) and I wish there was something like F#'s `Option` module, but it's just a matter of defining your own functions to do the same.
 
-There are many nil-friendly core functions, and some nil-adverse functions too. It's not always clear which functions will happily propagate nils and which ones will throw exceptions, so I often find myself experimenting in the REPL to find out. It's not something I have to worry about much, but a nil-propagation bug can be hard to debug when it happens. Personally, I'd rather see less nil-propagation in the Clojure core libraries but it does make sense in many cases.
+There are many nil-friendly core functions, and some nil-adverse functions too. It's not always clear which functions will happily propagate nils and which ones will throw exceptions, so I often find myself experimenting in the REPL to find out. It's not something I have to worry about much, but a nil-propagation bug can be hard to debug when it happens. Personally, I think I might prefer less nil-propagation in clojure.core in some instances, but it's very ergonomic in the large.
 
 ### Metadata
 
@@ -256,17 +266,17 @@ I used an interactive debugger much more often with F#. I've only tried to inter
 
 ## Invariants
 
-One of my favorite things about more strongly-typed functional languages is the ability to _make illegal states unrepresentable._ In Clojure it's very hard to make illegal states unrepresentable, in fact I'd say in most cases it's just not worth the effort. In ML variants it's somewhat difficult to write a program that compiles but doesn't work on some level; I quickly found in Clojure it's quite easy to write a program that compiles but doesn't work at all.
+One of my favorite things about statically-typed functional languages is the ability to _make illegal states unrepresentable._ In Clojure it's very hard to make illegal states unrepresentable, in fact I'd say in most cases it's just not worth the effort. In ML variants it's somewhat difficult to write a program that compiles but doesn't work on some level; I quickly found in Clojure it's quite easy to write a program that compiles but doesn't work at all.
 
 Clojure feels very open and permissive when it comes to data and passing it around. The thought that a caller could pass _anything_ as an argument was unsettling at first.
 
 As I embraced this _laissez faire_ approach, the Clojure philosophy started to make sense. Clojure codebases are driven more by convention than contract. In F# I mostly thought about problems in terms of the types I'd use to model them, essentially defining a contract. If my program compiled I could be fairly certain it'd do at least something like what I intended. This meant putting a lot of upfront thought into the _types_ I'd need to model the problem.
 
-In Clojure I find myself doing the opposite---just diving into the REPL and immediately writing code that operates on data. That same code can be sculpted into tests (if I'm not too lazy) and ultimately end up in production.
+In Clojure I find myself doing the opposite --- just diving into the REPL and immediately writing code that operates on data. That same code can be sculpted into tests (if I'm not too lazy) and ultimately end up in production.
 
 ### Refactoring
 
-In my experience---and related to the topic of invariants---non-trivial Clojure can be more difficult to refactor than similar F# code. This isn't hard to imagine since there are no guardrails ensuring your functions/types stay aligned with your assumptions. (Yes, you can use clojure.spec but it's still in alpha and is also totally opt-in unlike static type systems.)
+In my experience --- and related to the topic of invariants --- non-trivial Clojure can be more difficult to refactor than similar F# code. This isn't hard to imagine since there are no guardrails ensuring your functions/types stay aligned with your assumptions. (Yes, you can use clojure.spec but it's still in alpha and is also totally opt-in unlike static type systems.)
 
 I've felt this pain a few times and the only conclusions I've drawn are to use clojure.spec for non-trivial code, especially around domain boundaries, and try even harder to solve very small problems in ways that can compose to solve larger ones. This way your small-problem code is more likely to be "obviously correct" and more stable (or less likely to require adaptation). The best example of this approach I can point to is clojure.core itself, although it doesn't have to worry itself with messy "business" domains.
 
@@ -286,7 +296,7 @@ Clojure does allow you to define pre- and post-condition functions for assertion
 ;; throws "CompilerException java.lang.AssertionError: Assert failed: (every? number? nums), compiling ..."
 ```
 
-I suspect clojure.spec's function instrumentation would mostly deprecate pre- and post-conditions, but I'm just guessing.
+I suspect clojure.spec's function instrumentation would mostly supercede pre- and post-conditions, but I'm just guessing. It's possible to use them together.
 
 <div class="thinking-separator"><div></div></div>
 
@@ -294,6 +304,6 @@ I suspect clojure.spec's function instrumentation would mostly deprecate pre- an
 
 It's the carefully and conservatively curated confluence (alliteration achievement unlocked 🏅) of Clojure's design decisions and philosophies, _especially_ those that were hard for me to embrace at first, that make it such an enjoyable programming experience for me.
 
-I pre-judged Clojure for being a dynamic language because I'd never enjoyed working in a dynamic language before. As I look back on the things I thought I'd miss from a strongly typed language, I can easily say I've faired just as well without them.
+I pre-judged Clojure for being a dynamic language because I'd never enjoyed working in a dynamic language before. As I look back on the things I thought I'd miss from a statically-typed language, I can easily say I've faired just as well without them.
 
 P.S. There were a bunch of other cool Clojure tidbits I wanted to mention but this post was getting too long!
