@@ -6,7 +6,7 @@ tags:   clojure lisp
 ---
 A lot has changed since my last post nearly a year ago. I want to write about my experience coming from a ML-family language to a Lisp. It's not very informative as a tutorial; it's mostly scattershot notes and things I've found interesting along the way.
 
-> _Updated 2018-10-04: Some corrections from feedback. 2018-02-11: Added notes on metadata, pre-/post-conditions, and refactoring._
+> _Updated 2018-10-07: Sequences; 2018-10-04: Some corrections from feedback; 2018-02-11: Added notes on metadata, pre-/post-conditions, and refactoring._
 
 ## Background
 
@@ -152,11 +152,11 @@ Maps would seem to be Clojure's commonplace record type, even though it has `def
 
 I can't talk about data in Clojure without talking about [clojure.spec](https://clojure.org/about/spec)!
 
-I believe there's a drawback to the ambiguities of working with data in Clojure, and one that clojure.spec can address: sometimes you really do need a rigid _specification_ of data. With clojure.spec you can _document_ the shape of data (in a machine-readable format), then use that to _verify_ properties of functions of that data (via generative and property-based testing), and a whole lot more. I've even leveraged clojure.spec to generate API documentation and sample code. Watch this [excellent talk](https://www.youtube.com/watch?v=oyLBGkS5ICk) for more on clojure.spec.
+I believe there's a drawback to the ambiguities of working with data in Clojure, and one that clojure.spec can address: sometimes you really do need a rigid _specification_ of data. With clojure.spec you can _specify_ the shape of data (in a machine-readable format), then use that to _verify_ properties of functions of that data (via generative and property-based testing), and a whole lot more. I've even leveraged clojure.spec to generate API documentation and sample code. Watch this [excellent talk](https://www.youtube.com/watch?v=oyLBGkS5ICk) for more on clojure.spec.
 
 Spec solves many problems but what interested me at first was using it as a sort of opt-in _gradual typing_ system for my projects. I could write specs for only the data structures and functions I wanted. With function specs, I could assert the inputs and outputs to specific functions at runtime; not quite as reassuring as compile-time but better than nothing!
 
-I hope clojure.spec adoption continues and this kind of opt-in type checking becomes more prevalent. I think there's a very sweet spot to occupy between _everything must be typed_ and total dynamic ambiguity. The new Clojure JDBC library shipping with specs is hopefully a good sign of what's to come.
+I hope clojure.spec adoption continues and this kind of opt-in checking becomes more prevalent. I think there's a very sweet spot to occupy between _everything must be explicitly typed_ and total dynamic ambiguity. The new Clojure JDBC library shipping with specs is hopefully a good sign of what's to come.
 
 ### Code as Data
 
@@ -170,12 +170,12 @@ Clojure's macros allow you to work with code as data. Much of Clojure's core fun
 ```
 I'd never worked with a language in which you could peer into such fundamental constructs, and it opened my mind to what else was possible. Indeed you can read through [clojure.core](https://github.com/clojure/clojure/blob/clojure-1.9.0/src/clj/clojure/core.clj) top-to-bottom and see much of the language bootstrap itself into existence.
 
-F# has some metaprogramming facilities but they're comparatively clunky (and fragmented depending on what kind of syntax tree you want). 
+F# has metaprogramming facilities but they're comparatively clunky (and fragmented depending on what kind of syntax tree you want). 
 Accomplishing similar metaprogramming in F# is [much more involved](https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/code-quotations#code).
 
 I don't often write new macros, and it's not advised to write macros where functions work just as well, but they're invaluable in certain contexts.
 
-A few times I've been able to do some trivial refactorings of code _programmatically_ in the REPL. Of course .NET has Roslyn but it's a totally separate facility; in Clojure this ability is inherited more or less by virtue of being a Lisp.
+A few times I've been able to do trivial refactorings of code _programmatically_ in the REPL. Of course .NET has Roslyn but it's a totally separate facility; in Clojure this ability is inherited more or less by virtue of being a Lisp.
 
 ### Data as Code
 
@@ -247,6 +247,37 @@ The metadata facilities are also commonly used for compiler type hints, docstrin
  :name left-pad,
  :ns #object[clojure.lang.Namespace 0x547b55b7 "playground.core"]}
 ```
+
+### Sequences
+
+Both Clojure and F# are great for composing functional pipelines that work on sequences.
+
+Both offer lazily evaluated sequences. Clojure's lazy sequence results are cached by default whereas F# has `Seq.cached`.
+Clojure's lazy sequences are usually realized in chunks, and so can have some unintended consequences if you mix side-effects with laziness.
+
+There's another notable difference I'd like to highlight. Take these similar examples:
+```ocaml
+[0..10]
+|> Seq.map (fun x -> x + 1)
+|> Seq.filter (fun x -> (x % 2) = 0)
+|> Seq.sum
+```
+```clojure
+(->> (range 0 11) ;; upper bound is exclusive
+     (map inc)
+     (filter even?)
+     (apply +))
+```
+In both languages, `map` and `filter` will each create intermediate lazy sequences to be evaluated later during summation. There is a cost associated with those intermediate sequences/thunks. Clojure has the concept of [transducers](https://clojure.org/reference/transducers), but I'm not aware of any similar idea in F#. Transducers compose operations on sequences such that no additional intermediate sequences are required --- the transducer functions are composed and applied in one pass.
+```clojure
+(transduce
+  (comp
+    (map inc)
+    (filter even?))
+  +
+  (range 0 11))
+```
+The transducer example is ~7x faster than the original Clojure example! It's too large a topic to explore in this post, but transducers are a nice tool to have, and there are other power tools in Clojure's [reducers](https://clojure.org/reference/reducers).
 
 <div class="thinking-separator"><div></div></div>
 
