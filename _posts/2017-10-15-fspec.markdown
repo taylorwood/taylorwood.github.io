@@ -21,7 +21,9 @@ Function specs are typically defined with `s/fdef`. Let's provide a spec for the
 ```clojure
 (s/fdef digits :args (s/cat :just-an-int int?))
 ```
-Function argument lists can be spec'd with `s/cat`, treating the arguments as a tagged concatenation or sequence. (If you think about it, `defn` function arguments are just a vector, man.) Here we only have one argument and we want it to be an integer. Note that the function's argument names and the keywords used to describe them in the `s/cat` spec do not have to match, though they do in this example.
+_Note: with `s/cat` the function's argument names and the keywords used to describe them in the spec don't have to match --- it's the position that's important._
+
+Function argument lists can be spec'd as a sequence, which makes perfect sense as they are a sequence of arguments. I often prefer `s/cat`, treating the arguments as a tagged concatenation, although `:args` specs can also be described with `s/tuple`, `s/alt`, `s/+`, `s/*`, `s/?`, etc.
 
 We can now `instrument` the function to assert calls against its `:args` spec:
 ```clojure
