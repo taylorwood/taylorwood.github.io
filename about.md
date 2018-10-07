@@ -17,4 +17,6 @@ In the early 2000s I started writing C# and peaked early with [my most popular p
 
 Circa 2012 I got a copy of [The Little Schemer](https://mitpress.mit.edu/books/little-schemer) and decided I must become a functional programmer. Since then I've been writing F# and Clojure and loving every minute of it!
 
+My professional work has involved areas such as print, journalism, data mining and classification, finance, online grocery, and e-commerce.
+
 I live in Chicago, IL and like to [play music](http://www.daytrotter.com/seafarer/daytrotter-studio-january-18-2011.html) (guitar, piano, drums, vuvuzela), listen to music, see live music, take pictures, eat delicious food, drink delicious midwestern beer, and contribute to open-source software whenever possible.
