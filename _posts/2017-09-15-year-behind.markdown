@@ -10,7 +10,7 @@ A lot has changed since my last post nearly a year ago. I want to write about my
 
 ## Background
 
-My first exposure to functional programming was through a book called [The Little Schemer](https://mitpress.mit.edu/books/little-schemer): a fairly thin, flourescent, mind-melting paperback that I'm not quite sure how I came upon. I'd been programming for ten years but reading it was like reincarnating my inner programmer.
+My first exposure to functional programming was through a book called [The Little Schemer](https://mitpress.mit.edu/books/little-schemer-fourth-edition): a fairly thin, flourescent, mind-melting paperback that I'm not quite sure how I came upon. I'd been programming for ten years but reading it was like reincarnating my inner programmer.
 
 I was working mostly with .NET at the time so F# was a natural choice for functional exploration, even though it wasn't a Lisp. After a few years of F# I found myself back in Lispland.
 
@@ -72,19 +72,19 @@ A really neat-o thing about Clojure functions is the ability to define functions
 ```clojure
 (+ x y & more)
 ```
-Here, `more` can be any number of additional arguments. This ties into another concept that was new to me: _applying_ a sequence of arguments to a function.
+Here, `more` can be any number of additional arguments. This ties into another concept that was new to me: _applying_ a function to a sequence of arguments.
 ```clojure
 (apply + [1 2 3 4 5 6 7 8 9])
 => 45
 ```
 
-Clojure has a nice compact way of defining multiple function arities: a single function symbol form with each arglist + implementation in parentheses:
+Clojure has a nice compact way of defining multiple function arities: a single function symbol form with each arglist and implementation wrapped in parentheses:
 ```clojure
 (defn foo
  ([a]
   (println a))
- ([a b]
-  (println a b)))
+ ([a b & more]
+  (apply println a b more)))
 ```
 And you do get some compile-time safety checks on function arities.
 
@@ -97,7 +97,7 @@ Multi-arity functions are also one way Clojure deals with named optional argumen
 ```
 The additional "arguments" are actually treated as a map and I've seen this style referred to as _kwargs_. It's a form of destructuring in the function signature like this:
 ```clojure
-[num & {:keys [append path]}]
+(defn foo [num & {:keys [append path]}] ...)
 ```
 This syntax obviously requires an even number of key/value pair arguments.
 
