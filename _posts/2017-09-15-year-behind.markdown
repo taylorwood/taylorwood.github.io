@@ -199,14 +199,28 @@ Lately I find myself thinking more in terms of _data_ than procedural code. For 
 
  This can also be expressed as a map, and that map can be used as a _function_ that returns the matched key's value. This code has roughly the same effect as the `case` above:
 ```clojure
-(def foo
+(def score
   {"High"   100
    "Medium" 50
    "Low"    0})
-(some foo "Medium") => 50
+(score "Medium") => 50
 ```
-Here we're passing the map `foo` as a _function_ to `some`, which will return the first value of the matching key.
 _An important detail is that `case` works more like a `switch` statement with fast equality checks/jumps, and will throw an exception by default if no match is found._
+
+Here we're using the map `score` as a _function_ and passing a key value for which to return the value.
+```clojure
+(score "Nope.") => nil ;; returns nil when key not found
+```
+You can also specify a third argument for a default value if the key isn't found:
+```clojure
+(score "Nope." -1) => -1
+```
+You can use the map as a function in higher order functions:
+```clojure
+(map score ["Medium" "Low" "Medium"]) => (50 0 50)
+```
+
+And some of the same concepts apply to sets.
 
 This approach is nice when you want to define some "rules" in one place and it use them in many, or maybe it's loaded from a database or configuration file.
 
