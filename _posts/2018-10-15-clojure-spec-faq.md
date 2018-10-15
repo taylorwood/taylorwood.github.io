@@ -5,9 +5,11 @@ date:   2018-10-15 00:00:00
 tags:   clojure spec intro beginner faq guide manual tips
 ---
 
-[Clojure.spec](https://clojure.org/about/spec) has been available (in alpha) for some time, and there are great [talks](https://www.youtube.com/watch?v=oyLBGkS5ICk) and resources like the [rationale](https://clojure.org/about/spec) and [official guide](https://clojure.org/guides/spec), but I'd like to write about common beginners' issues I've seen.
+[Clojure.spec](https://clojure.org/about/spec) has been available (in alpha) for some time, and there are great [talks](https://www.youtube.com/watch?v=oyLBGkS5ICk) and resources like the [rationale](https://clojure.org/about/spec) and [official guide](https://clojure.org/guides/spec). This post supplements those with some common questions and issues I've seen.
 
-These are mostly things I've experienced myself or seen on [Stack Overflow](https://stackoverflow.com/questions/tagged/clojure.spec), [Clojurians Slack](http://clojurians.net), [r/Clojure](https://www.reddit.com/r/Clojure/) or [Twitter](https://twitter.com/search?q=clojure%20spec). The community is extremely helpful so reach out if you have questions --- it's not unusual to get an answer straight from a Clojure maintainer. _And while this post follows question & answer format, my answers are extremely non-authoritative. Please [report any issues](https://github.com/taylorwood/taylorwood.github.io/issues/new) you may find!_
+These are mostly things I've experienced myself or seen on [Stack Overflow](https://stackoverflow.com/questions/tagged/clojure.spec), [Clojurians Slack](http://clojurians.net), [r/Clojure](https://www.reddit.com/r/Clojure/) or [Twitter](https://twitter.com/search?q=clojure%20spec).
+The community is extremely helpful so reach out if you have questions --- it's not unusual to get an answer straight from a Clojure maintainer.
+_And while this post follows question & answer format, my answers are extremely non-authoritative. Please [report any issues](https://github.com/taylorwood/taylorwood.github.io/issues/new) you find!_
 
 ## Usage
 
@@ -37,6 +39,7 @@ You can just as easily put specs for _data_ in separate namespaces, and specs fo
 One consideration is whether you're using qualified keywords in `s/keys` map specs.
 I think a potential benefit of having data specs in the same namespace as your regular code is that it's natural to inherit that namespace for namespaced map specs:
 ```clojure
+(in-ns 'customer)
 (s/def ::id int?)
 (s/def ::name string?)
 (s/def ::contact (s/keys :req [::id ::name]))
@@ -201,7 +204,7 @@ In these cases you can provide your own generator with `s/with-gen`:
 (gen/sample (s/gen ::palindrome))
 => ("" "" "e" "PA6AP" "OUdTdUO" "k" "N" "0" "1T353T1" "D4V4D")
 ```
-Some spec functions also take an optional _overrides_ map allowing you to specify custom generators without associating them with the spec definitions directly.
+Some spec functions also take an optional _overrides_ map of custom generators without needing to associate them with the spec definitions directly.
 
 **Q: How can I generate data with parent/child relationships?**
 
@@ -274,6 +277,44 @@ The `:gen-max` option will limit the length of generated sequences:
 ```clojure
 (gen/sample (s/gen (s/coll-of string? :gen-max 2)))
 => (["" ""] [] ["1D" ""] ["I"] [] ["Ne4" "y6i"] ["93" "oe"] ["4wUue7"] [] [])
+```
+
+## Specs as Data
+
+The current version of spec doesn't make it very easy to create or inspect specs programmatically.
+This is reportedly being worked on for a future release.
+
+**Q: How can I get the keys from a `s/keys` map spec?**
+
+**A: Use `s/form` or `s/describe` on the spec.**
+
+`s/form` (and its abbreviated sibling `s/describe`) will return the original form of the spec:
+```clojure
+(s/def ::my-map
+  (s/keys :req-un [::id]
+          :opt-un [::parent-id ::children]))
+(->> (s/get-spec ::my-map)
+     (s/describe)      ;; get abbrev. form of original spec
+     (rest)            ;; drop `keys` symbol
+     (apply hash-map)) ;; put kwargs into map
+=> {:req-un [:sandbox/id]
+    :opt-un [:sandbox/parent-id :sandbox/children]}
+```
+
+**Q: How can I get the `:args`, `:ret`, or `:fn` specs from a function spec?**
+
+**A: Same as the previous answer, for any type of spec.**
+
+And if for some reason you also needed to recreate one of those specs, you could use `eval`:
+```clojure
+(s/fdef foo :args (s/tuple number?) :ret number?)
+(eval (->> (s/get-spec `foo)
+           (s/form) ;; get non-abbrev. form
+           (rest)
+           (apply hash-map)
+           :args))  ;; get :args spec
+(gen/sample (s/gen *1))
+=> ([2.0] [-1.5] [0] [-2] [-1.5] [-1.5] [14] [1] [##-Inf] [-5.875])
 ```
 
 ## Off-label Usage
