@@ -83,7 +83,9 @@ From the guide:
 
 **A: It's not meant to.**
 
-This is a common point of confusion. If you `instrument` a function spec'd with `fdef` or `fspec`, only its `:args` spec will be checked during each invocation. Why is that? I think one rationale might be that functional programs are generally a composition of functions where each output becomes an input to another function. If you have spec'd the `:args` and `:ret` of related functions `(f (g x))`, you'd be redundantly checking the same specs for the `:ret` of `g` and `:args` of `f`. For larger examples this could become very costly.
+This is a common point of confusion. If you `instrument` a function spec'd with `fdef` or `fspec`, only its `:args` spec will be checked during each invocation.
+Why is that? I think one rationale might be that functional programs are generally a composition of functions where each output becomes an input to another function.
+If you have spec'd the `:args` and `:ret` of related functions `(f (g x))`, you'd be redundantly checking the same specs for the `:ret` of `g` and `:args` of `f`. For larger examples this could become very costly.
 
 **Q: So why do `fdef`/`fspec` accept `:ret` and `:fn` specs too?**
 
@@ -238,7 +240,7 @@ We need a custom generator to ensure the `:parent-id` for child maps is accurate
 (gen/sample
   (gen/fmap set-parent-ids (s/gen ::my-map)))
 ```
-Also take a look at test.check's `recursive-gen` for another approach.
+Also see test.check's `recursive-gen` for another approach.
 
 Another example might be non-recursive relationships between values, like arguments to a function.
 Consider writing a function spec for `clojure.core/subs`:
@@ -293,10 +295,9 @@ This is reportedly being worked on for a future release.
 (s/def ::my-map
   (s/keys :req-un [::id]
           :opt-un [::parent-id ::children]))
-(->> (s/get-spec ::my-map)
-     (s/describe)      ;; get abbrev. form of original spec
-     (rest)            ;; drop `keys` symbol
-     (apply hash-map)) ;; put kwargs into map
+(->> (s/describe ::my-map) ;; get abbrev. form of original spec
+     (rest)                ;; drop `keys` symbol
+     (apply hash-map))     ;; put kwargs into map
 => {:req-un [:sandbox/id]
     :opt-un [:sandbox/parent-id :sandbox/children]}
 ```
@@ -308,8 +309,7 @@ This is reportedly being worked on for a future release.
 And if for some reason you also needed to recreate one of those specs, you could use `eval`:
 ```clojure
 (s/fdef foo :args (s/tuple number?) :ret number?)
-(eval (->> (s/get-spec `foo)
-           (s/form) ;; get non-abbrev. form
+(eval (->> (s/form `foo) ;; get non-abbrev. form
            (rest)
            (apply hash-map)
            :args))  ;; get :args spec
