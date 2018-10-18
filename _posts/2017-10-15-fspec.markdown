@@ -81,6 +81,28 @@ We can spec multi-arity functions using `s/alt` to define the alternate cases, a
 ```
 We can spec the zero-arity with `(s/cat)`; no arguments. We specify the variadic arguments with `s/*`. The "regex" specs _compose_ to match a single sequence. This composition of `s/cat` and `s/*` produces a spec that wants a sequence of two arguments and then _any number_ of additional arguments.
 
+And here's a variadic function with positional destructuring:
+```clojure
+(defn slarp [path & [blurp? glurf?]]
+  (str path blurp? glurf?))
+(s/fdef slarp
+  :args (s/cat :path string?
+               :rest (s/? (s/cat :blurp? int?
+                                 :glurf? boolean?))))
+(s/exercise-fn `slarp)
+=>
+([("") ""]
+ [("" -1 false) "-1false"]
+ [("e7" 0 true) "e70true"]
+ [("du9") "du9"]
+ [("K1" -6 false) "K1-6false"]
+ [("op0" -3 false) "op0-3false"]
+ [("2y" 2 false) "2y2false"]
+ [("qaGWVK") "qaGWVK"]
+ [("9h1Rh") "9h1Rh"]
+ [("") ""])
+```
+
 ## Higher-Order Functions
 
 This is an only slightly different, more involved example than [the one in the clojure.spec guide](https://clojure.org/guides/spec#_higher_order_functions).
