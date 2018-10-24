@@ -47,6 +47,10 @@ I think a potential benefit of having data specs in the same namespace as your r
 (print #:customer{:id 1 :name "Jane" :some.other/id "FhI-1"})
 ```
 
+**Q: Can I document specs with docstrings?**
+
+**A: No, but it's being considered for a future release.**
+
 ## Instrumentation & Testing
 
 `instrument` can be used to assert arguments to spec'd function invocations.
@@ -116,16 +120,16 @@ It's easy to forget the `s/&` spec which is useful for adding additional predica
 Consider these two conforming examples where the only difference is `s/&` vs. `s/and`:
 ```clojure
 (s/conform
-  (s/+ (s/alt :n number?
-              :s (s/and (s/+ string?)
-                        #(every? (complement empty?) %))))
-  [1 ["x" "a"] 2 ["y"] ["z"]])
+ (s/+ (s/alt :n number?
+             :s (s/and (s/+ string?)
+                       #(every? (complement empty?) %))))
+ [1 ["x" "a"] 2 ["y"] ["z"]])
 
 (s/conform
-  (s/+ (s/alt :n number?
-              :s (s/& (s/+ string?)
-                      #(every? (complement empty?) %))))
-  [1 "x" "a" 2 "y" "z"])
+ (s/+ (s/alt :n number?
+             :s (s/& (s/+ string?)
+                     #(every? (complement empty?) %))))
+ [1 "x" "a" 2 "y" "z"])
 ```
 
 **Q: How can I escape the regex spec nesting behavior?**
@@ -135,8 +139,8 @@ Consider these two conforming examples where the only difference is `s/&` vs. `s
 This is also described in the official guide above, but here's another example:
 ```clojure
 (s/conform
-  (s/+ (s/alt :n number? :s (s/spec (s/* string?))))
-  [1 2 3 ["x" "y" "z"]])
+ (s/+ (s/alt :n number? :s (s/spec (s/* string?))))
+ [1 2 3 ["x" "y" "z"]])
 => [[:n 1] [:n 2] [:n 3] [:s ["x" "y" "z"]]]
 ```
 But this example might be better specified with `s/coll-of` or `s/every`:
@@ -176,6 +180,27 @@ In this case there's a workaround if you're using unqualified keys in your map s
 Map specs are meant to be _open_ instead of _closed_. Adding data to a map spec should not make the map invalid.
 There are some cases where you might really want this, and of course [it's possible](https://github.com/gfredericks/schpec/blob/b2d80cff29861925e7e3407ef3e5de25a90fa7cc/src/com/gfredericks/schpec.clj#L13).
 
+**Q: Can I specify keys as conditionally required?**
+
+**A: Yes, use `and` and `or` inside `s/keys` `:req` and `:req-un` specs.**
+
+`or` forms (and potentially nested `and`s) inside `:req` and `:req-un` values are interpreted to form logical disjunctions/conjuctions of required keys.
+(Note: a top-level `and` wouldn't make much sense in the context of _required_ keys.)
+
+From `s/keys` docs:
+
+>The :req key vector supports 'and' and 'or' for key groups:
+
+>`(s/keys :req [::x ::y (or ::secret (and ::user ::pwd))] :opt [::z])`
+
+To illustrate this also works for `:req-un` keys:
+```clojure
+(s/valid?
+ (s/keys :req-un [(or ::a ::b) (or ::c ::d)])
+ {:b 0 :c 1})
+=> true
+```
+
 ## Generation
 
 **Q: Why does generation fail with _Couldn't satisfy such-that predicate after 100 tries_?**
@@ -199,10 +224,10 @@ In these cases you can provide your own generator with `s/with-gen`:
 ```clojure
 (s/def ::palindrome
   (s/with-gen
-    (s/and string? #(= (clojure.string/reverse %) %))
-    ;; use fmap to create palindromes of the generated strings
-    #(gen/fmap (fn [s] (apply str s (rest (reverse s))))
-               (s/gen string?))))
+   (s/and string? #(= (clojure.string/reverse %) %))
+   ;; use fmap to create palindromes of the generated strings
+   #(gen/fmap (fn [s] (apply str s (rest (reverse s))))
+              (s/gen string?))))
 (gen/sample (s/gen ::palindrome))
 => ("" "" "e" "PA6AP" "OUdTdUO" "k" "N" "0" "1T353T1" "D4V4D")
 ```
@@ -231,12 +256,12 @@ We need a custom generator to ensure the `:parent-id` for child maps is accurate
 ```clojure
 (defn set-parent-ids [m]
   (clojure.walk/prewalk
-    (fn [v]
-      (if (map? v)
-        (update v
-          :children #(map (fn [c] (assoc c :parent-id (:id v))) %))
-        v))
-    m))
+   (fn [v]
+     (if (map? v)
+       (update v
+         :children #(map (fn [c] (assoc c :parent-id (:id v))) %))
+       v))
+   m))
 (gen/sample
   (gen/fmap set-parent-ids (s/gen ::my-map)))
 ```
@@ -259,10 +284,10 @@ If we want to ensure that the index argument refers to a position in the string 
 ```clojure
 (s/def ::subs-args
   (s/with-gen
-    (s/cat :str string? :i int?)
-    #(gen/let [str (s/gen string?)
-               index (gen/large-integer* {:min 0 :max (count str)})]
-       [str index])))
+   (s/cat :str string? :i int?)
+   #(gen/let [str (s/gen string?)
+              index (gen/large-integer* {:min 0 :max (count str)})]
+      [str index])))
 (st/summarize-results (st/check `subs))
 => {:total 1, :check-passed 1}
 ```
