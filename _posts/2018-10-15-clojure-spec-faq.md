@@ -173,12 +173,16 @@ In this case there's a workaround if you're using unqualified keys in your map s
 (s/valid? ::customer {:name "Taylor" :company {:name nil}}) => true
 ```
 
-**Q: How can I make a `s/keys` spec that disallows extra keys?**
+**Q: How can I make a strict/closed `s/keys` spec that disallows extra keys?**
 
-**A: You should reconsider that.**
+**A: You should only do this when necessary.**
 
-Map specs are meant to be _open_ instead of _closed_. Adding data to a map spec should not make the map invalid.
-There are some cases where you might really want this, and of course [it's possible](https://github.com/gfredericks/schpec/blob/b2d80cff29861925e7e3407ef3e5de25a90fa7cc/src/com/gfredericks/schpec.clj#L13).
+In spec, map specs are meant to be _open_ rather than _closed_.
+Adding data to a valid map should not invalidate the map.
+
+There are cases where you might really want this, e.g. you may want to restrict what goes into your document storage or reject API requests containing extra data.
+While spec doesn't provide this behavior by default, it does nothing to prevent it, and there are easy options at hand like [this](https://github.com/gfredericks/schpec/blob/b2d80cff29861925e7e3407ef3e5de25a90fa7cc/src/com/gfredericks/schpec.clj#L13)
+or [this](https://github.com/bhauman/spell-spec#spell-specalphastrict-keys).
 
 **Q: Can I specify keys as conditionally required?**
 
