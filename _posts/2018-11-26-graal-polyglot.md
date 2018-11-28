@@ -352,6 +352,23 @@ sleeping
 (log-coll (range)) ;; infinite seq will never complete
 ```
 
+## Loading External JavaScript
+
+This example loads Underscore.js from GitHub and calls its
+[`.invert()` function](https://underscorejs.org/#invert) on a Clojure map:
+```clojure
+(def invert
+  (let [_invert
+        (js->clj "
+          load('https://raw.githubusercontent.com/jashkenas/underscore/master/underscore.js');
+          (m) => { return _.invert(m); };")]
+    (fn [m] (_invert (ProxyObject/fromMap m)))))
+
+(invert {"foo" "bar", "1" "2"})
+=> {"2" "1", "bar" "foo"}
+```
+This is similar to `clojure.set/map-invert` but in JavaScript all the keys must be strings.
+
 ## Closing Remarks
 
 I have no practical use for any of this at the moment, but I find this whole mixed-language runtime
