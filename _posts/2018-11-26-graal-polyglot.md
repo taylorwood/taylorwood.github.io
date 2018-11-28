@@ -130,28 +130,30 @@ To paraphrase someone else: now it's data, you've already won!
 Equipped with just `value->clj` and a couple helpers, let's play the ployglottery...
 
 ```clojure
-(value->clj (eval-js "[{}]"))
+(def js->clj (comp value->clj eval-js)) ;; fn composition convenience
+
+(js->clj "[{}]")
 => [{}]
 
-(value->clj (eval-js "false"))
+(js->clj "false")
 => false
 
-(value->clj (eval-js "3 / 3.33"))
+(js->clj "3 / 3.33")
 => 0.9009009009009009
 
-(value->clj (eval-js "123123123123123123123123123123123"))
+(js->clj "123123123123123123123123123123123")
 => 1.2312312312312312E32
 
-(value->clj (eval-js "m = {foo: 1, bar: '2', baz: {0: false}};"))
+(js->clj "m = {foo: 1, bar: '2', baz: {0: false}};")
 => {"foo" 1, "bar" "2", "baz" {"0" false}}
 
-(value->clj (eval-js "1 + '1'"))
+(js->clj "1 + '1'")
 => "11" ;; a classic
 
-(value->clj (eval-js "!!\"false\" == !!\"true\""))
+(js->clj "!!\"false\" == !!\"true\"")
 => true ;; we've proven false!
 
-(value->clj (eval-js "['foo', 10, 2].sort()"))
+(js->clj "['foo', 10, 2].sort()")
 => [10 2 "foo"] ;; JS sort so funny!
 ```
 Nothing surprising there, just that we're evaluating some _JavaScript_
@@ -172,7 +174,7 @@ What if you could write your functions in JavaScript, which I hear is getting
 better all the time, and call them from Clojure? Welcome to the next level!
 
 ```clojure
-(def doubler (value->clj (eval-js "(n) => { return n * 2; }")))
+(def doubler (js->clj "(n) => { return n * 2; }"))
 (doubler 2)
 => 4 ;; checks out!
 ```
@@ -205,7 +207,7 @@ We can use `ProxyArray` to pass collections to JavaScript functions
 so they can be treated as native JavaScript arrays.
 ```clojure
 (def js-aset
-  (value->clj (eval-js "(arr, idx, val) => { arr[idx] = val; return arr; }")))
+  (js->clj "(arr, idx, val) => { arr[idx] = val; return arr; }"))
 (js-aset (ProxyArray/fromArray (object-array [1 2 3])) 1 nil)
 => [1 nil 3] ;; and we get a mutated vector back
 ```
@@ -216,7 +218,7 @@ like keywords (_boxed_ in polyglot values) passed through the foreign JavaScript
 function unharmed.
 ```clojure
 (def variadic-fn
-  (value->clj (eval-js "(x, y, ...z) => { return [x, y, z]; }")))
+  (js->clj "(x, y, ...z) => { return [x, y, z]; }"))
 (apply variadic-fn :foo :bar (range 3))
 => [:foo :bar [0 1 2]]
 ```
@@ -230,7 +232,7 @@ clojure.lang.PersistentArrayMap cannot be cast to java.lang.Character
 I thought this was a _dynamic_ language! When you just need to get the job done, JavaScript will oblige:
 ```clojure
 (def js-sort
-  (value->clj (eval-js "(...vs) => { return vs.sort(); }")))
+  (js->clj "(...vs) => { return vs.sort(); }"))
 (apply js-sort [{:b nil} \a 1 "a" "A" #{\a} :foo  -1 0 {:a nil} "bar"])
 => [-1 0 1 "A" #{\a} :foo {:a nil} {:b nil} "a" "a" "bar"]
 ```
@@ -242,7 +244,7 @@ sorting logic. It "just works" despite the fact JavaScript has no concept of key
 Use the JSON serde functions that started it all:
 ```clojure
 (def ->json
-  (value->clj (eval-js "(x) => { return JSON.stringify(x); }")))
+  (js->clj "(x) => { return JSON.stringify(x); }"))
 (->json [1 2 3])
 => "[1,2,3]"
 
@@ -251,7 +253,7 @@ Use the JSON serde functions that started it all:
 => "{\"foo\":1,\"bar\":null}"
 
 (def json->
-  (value->clj (eval-js "(x) => { return JSON.parse(x); }")))
+  (js->clj "(x) => { return JSON.parse(x); }"))
 ;; take some round trips
 (json-> (->json [1 2 3]))
 => [1 2 3]
@@ -260,7 +262,7 @@ Use the JSON serde functions that started it all:
 
 ;; access JSON object members naturally
 (def json-object
-  (value->clj (eval-js "(m) => { return m.foo + m.foo; }")))
+  (js->clj "(m) => { return m.foo + m.foo; }"))
 (json-object (ProxyObject/fromMap {"foo" 1}))
 => 2
 ```
@@ -285,13 +287,13 @@ In this example we return a JavaScript function that closes over a nested map an
 function to invoke with the map — maybe the term _callback_ would be more apt in JavaScript parlance.
 ```clojure
 (def clj-lambda
-  (value->clj (eval-js "
+  (js->clj "
   m = {foo: [1, 2, 3],
        bar: {
          baz: ['a', 'z']
        }};
   (fn) => { return fn(m); }
-  ")))
+  "))
 
 (clj-lambda
  (proxy-fn #(clojure.walk/prewalk
@@ -310,8 +312,8 @@ map value.
 We can lean on JavaScript's `.reduce()` and use it just like Clojure's `reduce` with a lazy sequence:
 ```clojure
 (def js-reduce
-  (let [reduce (value->clj (eval-js "(f, coll) => { return coll.reduce(f); }"))
-        reduce-init (value->clj (eval-js "(f, coll, init) => { return coll.reduce(f, init); }"))]
+  (let [reduce (js->clj "(f, coll) => { return coll.reduce(f); }")
+        reduce-init (js->clj "(f, coll, init) => { return coll.reduce(f, init); }")]
     (fn
       ([f coll] (reduce f coll))
       ([f init coll] (reduce-init f coll init)))))
@@ -335,8 +337,7 @@ being evaluated in JavaScript.
 Here we can see the Clojure `prn` statements all execute before the JavaScript logs the first value:
 ```clojure
 (def log-coll
-  (value->clj
-   (eval-js "(coll) => { for (i in coll) console.log(coll[i]); }")))
+  (js->clj "(coll) => { for (i in coll) console.log(coll[i]); }"))
 (log-coll (repeatedly 3 #(do (prn 'sleeping)
                              (Thread/sleep 100)
                              (rand)))
