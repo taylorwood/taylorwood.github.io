@@ -223,7 +223,7 @@ function unharmed.
 
 Have you ever tried to `sort` a wildly heterogenous collection in Clojure?
 ```clojure
-(sort [{:b nil} \a 1 "a" "A" :foo  -1 0 {:a nil} "bar"])
+(sort [{:b nil} \a 1 "a" "A" #{\a} :foo  -1 0 {:a nil} "bar"])
 CompilerException java.lang.ClassCastException:
 clojure.lang.PersistentArrayMap cannot be cast to java.lang.Character
 ```
@@ -231,12 +231,12 @@ I thought this was a _dynamic_ language! When you just need to get the job done,
 ```clojure
 (def js-sort
   (value->clj (eval-js "(...vs) => { return vs.sort(); }")))
-(apply js-sort [{:b nil} \a 1 "a" "A" :foo  -1 0 {:a nil} "bar"])
-=> [-1 0 1 "A" :foo {:a nil} {:b nil} "a" "a" "bar"]
+(apply js-sort [{:b nil} \a 1 "a" "A" #{\a} :foo  -1 0 {:a nil} "bar"])
+=> [-1 0 1 "A" #{\a} :foo {:a nil} {:b nil} "a" "a" "bar"]
 ```
-It's easy to miss in the above example, but notice again the keyword `:foo`
+It's easy to miss in the above example, but notice again the keyword `:foo` and a _set_
 in the input collection we passed to the JavaScript `.sort()` function, and
-the sorted output contains said keyword sorted by some likely inscrutable JavaScript
+the sorted output contains said keyword and set sorted by some likely inscrutable JavaScript
 sorting logic. It "just works" despite the fact JavaScript has no concept of keywords.
 
 Use the JSON serde functions that started it all:
@@ -281,8 +281,8 @@ This function provides an instance of GraalVM's `ProxyExecutable` that implement
 ```
 That's all we need to be able to pass executable code from Clojure into our polyglot context.
 
-In this example we return a function that closes over a nested map and takes another function
-to invoke with the map — maybe the term _callback_ would be more apt in JavaScript parlance.
+In this example we return a JavaScript function that closes over a nested map and takes another
+function to invoke with the map — maybe the term _callback_ would be more apt in JavaScript parlance.
 ```clojure
 (def clj-lambda
   (value->clj (eval-js "
@@ -306,6 +306,50 @@ That's Clojure using GraalVM to host and evaluate JavaScript, passing a Clojure
 function to a JavaScript lambda that invokes the Clojure function, which uses `prewalk`
 to reverse all the arrays in the nested JSON object, then getting back an idiomatic Clojure
 map value.
+
+We can lean on JavaScript's `.reduce()` and use it just like Clojure's `reduce` with a lazy sequence:
+```clojure
+(def js-reduce
+  (let [reduce (value->clj (eval-js "(f, coll) => { return coll.reduce(f); }"))
+        reduce-init (value->clj (eval-js "(f, coll, init) => { return coll.reduce(f, init); }"))]
+    (fn
+      ([f coll] (reduce f coll))
+      ([f init coll] (reduce-init f coll init)))))
+(js-reduce + (range 10))
+=> 45
+(js-reduce + -5.5 (range 10)
+=> 39.5
+```
+We can pass in a Clojure reducing function, that internally uses the JavaScript `doubler`
+function defined above, and build up a Clojure map within JavaScript's `.reduce()`:
+```clojure
+(js-reduce (fn [acc elem]
+             (assoc acc (keyword (str elem)) (doubler elem)))
+           {}
+           (range 5))
+=> {:0 0, :1 2, :2 4, :3 6, :4 8}
+```
+
+Some bad news about passing Clojure's lazy sequences to JavaScript: they'll be realized _before_
+being evaluated in JavaScript.
+Here we can see the Clojure `prn` statements all execute before the JavaScript logs the first value:
+```clojure
+(def log-coll
+  (value->clj
+   (eval-js "(coll) => { for (i in coll) console.log(coll[i]); }")))
+(log-coll (repeatedly 3 #(do (prn 'sleeping)
+                             (Thread/sleep 100)
+                             (rand)))
+sleeping
+sleeping
+sleeping
+0.8793736393816931
+0.9610193480723516
+0.05981091977823816
+=> nil
+
+(log-coll (range)) ;; infinite seq will never complete
+```
 
 ## Closing Remarks
 
