@@ -9,10 +9,9 @@ This post covers some toy problems I've solved with Clojure's [core.logic](https
 
 ## Introduction
 
-Logic and constraint-based programming interest me, which might explain why I like writing SQL queries so much.
-The idea that you can describe a problem declaratively and have a program give you an exhaustive set of answers is a bit mindblowing.
-For some problems, a "mechanical" solution might require much more code, and maybe much more complex code.
-I love trying to think about solutions in this way, even if logic programming isn't always the most appropriate solution.
+Logic and constraint-based programming interest me, which might explain why I enjoy SQL so much.
+I like the idea of describing a problem declaratively and having a computer give an exhaustive set of answers.
+For some problems, a "mechanical" solution might require much more code, and maybe much more complexity.
 
 See [this primer](https://github.com/clojure/core.logic/wiki/A-Core.logic-Primer) for basics, but I'll say here the basic starting point for core.logic is usually the `run*` or `run` form, with binding(s) that you want to solve for:
 ```clojure
@@ -28,7 +27,7 @@ This is telling us, for those two vectors to _unify_, the only possible value of
 
 ## Non-consecutive Ordering
 
-This is a basic permutation problem with a filtering step, but solving it with core.logic is fun. Given a sequence, we want to rearrange it such that no two values are repeated consecutively.
+This is a permutation problem with a filtering step, but solving it with core.logic is fun. Given a sequence, we want to rearrange it such that no two values are repeated consecutively.
 
 My approach was to define a goal that recursively constrained each pair in (a sliding window over) the input sequence to be unequal. Core.logic defines a `firsto` to set a goal for the first item in a sequence, but we need to define our own `secondo` that does the same but for the second item:
 ```clojure
@@ -140,9 +139,121 @@ And now let's find all the ways we can make 14 out of denominations 1, 2, 5, and
 ```
 🤯
 
+## Cryptarithmetic
+
+I'd never seen this type of problem before [this Stack Overflow question](https://stackoverflow.com/q/55315374) but it's great for logic programming. Let [Wikipedia](https://en.wikipedia.org/wiki/Verbal_arithmetic) tell it:
+
+>Verbal arithmetic, also known as alphametics, cryptarithmetic, cryptarithm or word addition, is a type of mathematical game consisting of a mathematical equation among unknown numbers, whose digits are represented by letters. The goal is to identify the value of each letter. The name can be extended to puzzles that use non-alphabetic symbols instead of letters.
+
+I saw some similarities between this and the denominational sum problem above, and I was able to use the `productsumo` goal in solving this too. I need another, simpler summation goal too:
+```clojure
+(defn sumo [vars sum]
+  (fresh [vhead vtail run-sum]
+    (conde
+      [(== vars ()) (== sum 0)]
+      [(conso vhead vtail vars)
+       (fd/+ vhead run-sum sum)
+       (sumo vtail run-sum)])))
+;; helper for getting sum of individual digits later
+(defn magnitudes [n]
+  (reverse (take n (iterate #(* 10 %) 1))))
+```
+
+The solver function creates logic variables based on the input words.
+1. Get the set of all characters from all words
+1. Zip those into a map with fresh logic variables, which will also be used to represent the answer
+1. Get the logic variables for the first letter of each word; they must be constrained to non-zero numbers because the word-numbers can't have leading zeroes
+1. Create a logic variable per word to hold the sum of each word's digits, reached with `magnitudes` and `productsumo`
+1. Create groups of the character-level logic variables, representing each word
+
+Then in `run*` the goals are tied together.
+```clojure
+(defn cryptarithmetic [& words]
+  (let [distinct-chars (distinct (apply concat words))
+        char->lvar (zipmap distinct-chars (repeatedly (count distinct-chars) lvar))
+        lvars (vals char->lvar)
+        first-letter-lvars (distinct (map #(char->lvar (first %)) words))
+        sum-lvars (repeatedly (count words) lvar)
+        word-lvars (map #(map char->lvar %) words)]
+    (run* [q]
+      (everyg #(fd/in % (fd/interval 0 9)) lvars) ;; digits 0-9
+      (everyg #(fd/!= % 0) first-letter-lvars)    ;; no leading zeroes
+      (fd/distinct lvars)                         ;; only distinct digits
+      (everyg (fn [[sum l]]                       ;; bind sums per word
+                (productsumo l (magnitudes (count l)) sum))
+              (map vector sum-lvars word-lvars))
+      (fresh [s]
+        (sumo (butlast sum-lvars) s) ;; sum all input word sums
+        (fd/== s (last sum-lvars)))  ;; input word sums must equal last word sum
+      (== q char->lvar))))
+```
+
+There are sample _alphametics_ around the internet. It seems the most common example is "send more money", which only has one possible solution. Most random phrases I've tried have either zero or many solutions — of course for the math to work out, the last word must be as long (i.e. have as many digits) as the longest word in the phrase.
+```clojure
+(cryptarithmetic "send" "more" "money")
+=> ({\s 9, \e 5, \n 6, \d 7, \m 1, \o 0, \r 8, \y 2})
+```
+
+The longest one I found is on Wikipedia, and takes about 30 seconds to run:
+```clojure
+(def real-long-alphametic
+  ["SO" "MANY" "MORE" "MEN" "SEEM" "TO"
+   "SAY" "THAT" "THEY" "MAY" "SOON" "TRY"
+   "TO" "STAY" "AT" "HOME" "SO" "AS" "TO"
+   "SEE" "OR" "HEAR" "THE" "SAME" "ONE"
+   "MAN" "TRY" "TO" "MEET" "THE" "TEAM"
+   "ON" "THE" "MOON" "AS" "HE" "HAS"
+   "AT" "THE" "OTHER" "TEN" "TESTS"])
+(apply cryptarithmetic real-long-alphametic)
+=> ({\A 7, \E 0, \H 5, \M 2, \N 6, \O 1, \R 8, \S 3, \T 9, \Y 4})
+```
+
+It's useful to print these out:
+```clojure
+(defn pprint-answer [char->digit words]
+  (let [nums (map #(apply str (map char->digit %))
+                  words)
+        width (apply max (map count nums))
+        width-format (str "%" width "s")
+        pad #(format width-format %)]
+    (println
+     (clojure.string/join \newline
+       (concat
+        (map #(str "+ " (pad %)) (butlast nums))
+        [(apply str (repeat (+ 2 width) \-))
+         (str "= " (pad (last nums)))]))
+     \newline)))
+
+(defn pprint-cryptarithmetic [& words]
+  (doseq [answer (apply cryptarithmetic words)]
+    (pprint-answer answer words)))
+
+(pprint-cryptarithmetic "what" "the" "hell")
++ 2368
++  831
+------
+= 3199 
+
++ 4526
++  651
+------
+= 5177 
+
++ 7826
++  685
+------
+= 8511 
+
++ 7852
++  281
+------
+= 8133
+```
+There's only four possible answers for _what the hell._
+
 ## Relational Flatten
 
-How about a slower, more convoluted version of clojure.core's `flatten` using only relational goals?
+How about a slow and impractical version of clojure.core's `flatten` using only relational goals?
 ```clojure
 (defn flatteno [l g]
   (condu
