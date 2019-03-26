@@ -25,62 +25,6 @@ That won't do anything by itself. We need to specify some goals/constraints on `
 ```
 This is telling us, for those two vectors to _unify_, the only possible value of `q` is `2`.
 
-## Non-consecutive Ordering
-
-This is a permutation problem with a filtering step, but solving it with core.logic is fun. Given a sequence, we want to rearrange it such that no two values are repeated consecutively.
-
-My approach was to define a goal that recursively constrained each pair in (a sliding window over) the input sequence to be unequal. Core.logic defines a `firsto` to set a goal for the first item in a sequence, but we need to define our own `secondo` that does the same but for the second item:
-```clojure
-(defn secondo [l s]
-  (fresh [x]
-    (resto l x)
-    (firsto x s)))
-```
-
-Using that we can write a `nonconseco` goal to recursively constrain the input:
-```clojure
-(defn nonconseco [l]
-  (conde
-    ;; empty list is non-consecutive
-    [(== l ())]
-    ;; singleton list is non-consecutive
-    [(fresh [x] (== l (list x)))]
-    ;; the real work
-    [(fresh [lhead lsecond ltail]
-       (conso lhead ltail l)
-       (secondo l lsecond)
-       (!= lhead lsecond)
-       (nonconseco ltail))]))
-```
-The third case in the `conde` defines three "fresh" logic variables for us to work with: `lhead` and `ltail` will be constrained to the first item of `l` and the rest of `l` respectively, by passing all three to `conso`. `lsecond` is constrained by our new `secondo` goal. Then we constrain `lhead` and `lsecond` to be unequal. Finally we recurse `nonconseco` with the the tail of `l` as its new input.
-
-Those are the only two goals we need to define to make this work. Now we can just wrap it in a function and call it:
-```clojure
-(defn non-consecutive [coll]
-  (first
-    (run 1 [q]
-      (permuteo coll q)
-      (nonconseco q))))
-
-(non-consecutive [1 1 2 2 3 3 4 4 5 5 5])
-=> (3 2 3 4 2 4 5 1 5 1 5)
-```
-
-This works fine with our custom `nonconseco` goal, but it's not very fast for larger sequences, or when finding _all_ non-consecutive permutations. We can define a predicate function to replace `nonconseco` which should be computationally cheaper than a recursive core.logic goal:
-
-```clojure
-(defn non-consecutive? [coll]
-  (every? (partial apply not=) (partition 2 1 coll)))
-
-(run* [q]
-  (permuteo [\a \b \b \a] q)
-  (pred q non-consecutive?))
-=> ((\b \a \b \a)
-    (\a \b \a \b))
-```
-
-Here we found _all_ possible answers by using `run*` instead of `run`. We used core.logic's `pred` to apply our custom predicate function to `q`. We can't apply it directly to `q` because `q` is a logic variable and we must get its actual _value_ to apply a predicate. See the `pred` source for how it does that using `project`.
-
 ## Denomination Sums (or making change)
 
 Given a set of denominations e.g. $1, $5, $10, how many ways are there to reach a given amount? This one was tricky!
@@ -145,7 +89,7 @@ I'd never seen this type of problem before [this Stack Overflow question](https:
 
 >Verbal arithmetic, also known as alphametics, cryptarithmetic, cryptarithm or word addition, is a type of mathematical game consisting of a mathematical equation among unknown numbers, whose digits are represented by letters. The goal is to identify the value of each letter. The name can be extended to puzzles that use non-alphabetic symbols instead of letters.
 
-I saw some similarities between this and the denominational sum problem above, and I was able to use the `productsumo` goal in solving this too. I need another, simpler summation goal too:
+I saw some similarities between this and the denominational sum problem above, and I was able to use the `productsumo` goal in solving this too. I also need another, simpler summation goal:
 ```clojure
 (defn sumo [vars sum]
   (fresh [vhead vtail run-sum]
@@ -154,7 +98,7 @@ I saw some similarities between this and the denominational sum problem above, a
       [(conso vhead vtail vars)
        (fd/+ vhead run-sum sum)
        (sumo vtail run-sum)])))
-;; helper for getting sum of individual digits later
+;; and for getting sum of individual digits later
 (defn magnitudes [n]
   (reverse (take n (iterate #(* 10 %) 1))))
 ```
@@ -250,6 +194,64 @@ It's useful to print these out:
 = 8133
 ```
 There's only four possible answers for _what the hell._
+
+Update: I found a couple instances of this problem are also in the [core.logic benchmark suite](https://github.com/clojure/core.logic/blob/10ee95eb2bed70af5bc29ea3bd78b380f054a8b4/src/main/clojure/clojure/core/logic/bench.clj#L328) itself.
+
+## Non-consecutive Ordering
+
+This is a permutation problem with a filtering step, but solving it with core.logic is fun. Given a sequence, we want to rearrange it such that no two values are repeated consecutively.
+
+My approach was to define a goal that recursively constrained each pair in (a sliding window over) the input sequence to be unequal. Core.logic defines a `firsto` to set a goal for the first item in a sequence, but we need to define our own `secondo` that does the same but for the second item:
+```clojure
+(defn secondo [l s]
+  (fresh [x]
+    (resto l x)
+    (firsto x s)))
+```
+
+Using that we can write a `nonconseco` goal to recursively constrain the input:
+```clojure
+(defn nonconseco [l]
+  (conde
+    ;; empty list is non-consecutive
+    [(== l ())]
+    ;; singleton list is non-consecutive
+    [(fresh [x] (== l (list x)))]
+    ;; the real work
+    [(fresh [lhead lsecond ltail]
+       (conso lhead ltail l)
+       (secondo l lsecond)
+       (!= lhead lsecond)
+       (nonconseco ltail))]))
+```
+The third case in the `conde` defines three "fresh" logic variables for us to work with: `lhead` and `ltail` will be constrained to the first item of `l` and the rest of `l` respectively, by passing all three to `conso`. `lsecond` is constrained by our new `secondo` goal. Then we constrain `lhead` and `lsecond` to be unequal. Finally we recurse `nonconseco` with the the tail of `l` as its new input.
+
+Those are the only two goals we need to define to make this work. Now we can just wrap it in a function and call it:
+```clojure
+(defn non-consecutive [coll]
+  (first
+    (run 1 [q]
+      (permuteo coll q)
+      (nonconseco q))))
+
+(non-consecutive [1 1 2 2 3 3 4 4 5 5 5])
+=> (3 2 3 4 2 4 5 1 5 1 5)
+```
+
+This works fine with our custom `nonconseco` goal, but it's not very fast for larger sequences, or when finding _all_ non-consecutive permutations. We can define a predicate function to replace `nonconseco` which should be computationally cheaper than a recursive core.logic goal:
+
+```clojure
+(defn non-consecutive? [coll]
+  (every? (partial apply not=) (partition 2 1 coll)))
+
+(run* [q]
+  (permuteo [\a \b \b \a] q)
+  (pred q non-consecutive?))
+=> ((\b \a \b \a)
+    (\a \b \a \b))
+```
+
+Here we found _all_ possible answers by using `run*` instead of `run`. We used core.logic's `pred` to apply our custom predicate function to `q`. We can't apply it directly to `q` because `q` is a logic variable and we must get its actual _value_ to apply a predicate. See the `pred` source for how it does that using `project`.
 
 ## Relational Flatten
 
