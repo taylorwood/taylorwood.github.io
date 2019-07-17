@@ -262,9 +262,9 @@ This works fine with our custom `nonconseco` goal, but it's not very fast for la
 
 Here we found _all_ possible answers by using `run*` instead of `run`. We used core.logic's `pred` to apply our custom predicate function to `q`. We can't apply it directly to `q` because `q` is a logic variable and we must get its actual _value_ to apply a predicate. See the `pred` source for how it does that using `project`.
 
-## Relational Flatten
+## Non-relational Flatten
 
-How about a slow and impractical version of clojure.core's `flatten` using only relational goals?
+How about a slow, impractical version of clojure.core's `flatten`?
 ```clojure
 (defn flatteno [l g]
   (condu
@@ -285,3 +285,4 @@ How about a slow and impractical version of clojure.core's `flatten` using only 
 (logical-flatten '(((((1) 2)) 3) (4) 5 6 ((() 7)) 8 9))
 => (1 2 3 4 5 6 7 8 9)
 ```
+I have a feeling `flatteno` can be simplified but I haven't finished _The Reasoned Schemer_ yet.
