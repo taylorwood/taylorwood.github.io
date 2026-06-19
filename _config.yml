@@ -15,3 +15,11 @@ kramdown:
   syntax_highlighter: rouge
 plugins:
   - jekyll-sitemap
+
+# Keep dev/tooling files out of the built site.
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - README.md
+  - LICENSE
