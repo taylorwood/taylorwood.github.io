@@ -11,26 +11,25 @@ _Reproducing a sociology simulation paper about social norms and the tendency to
 *The Unaccountability Machine*[^uam] by Dan Davies is broadly about how and why dysfunctional systems produce outcomes nobody seems to want.
 It also contains a tidy introduction to Cybernetics[^cybernetics] and ideas like the viable system model[^vsm] and requisite variety[^variety].
 
-Reading that got me interested in more systems and sociology topics, eventually leading me to a pair of papers:
+Reading that got me interested in more systems and sociology topics, and eventually led me to these papers:
 1. The LL game: The curious preference for low quality and its norms (Gambetta & Origgi, 2012)[^ll-game]
 2. Social Norms and the Dominance of Low-Doers (Proietti & Franco, 2018)[^low-doers]
 
-Both were approachable and engaging despite my total unfamiliarity with game theory, sociology, and behavioral modeling.
-After 25 years in industry it was refreshing to see a formal take on corporate clique culture.
+Despite knowing nothing about game theory, sociology, or behavioral modeling, I thought both papers were approachable and engaging.
+After 25 years in industry it was refreshing to see a formal academic take on organizational cliques.
 And the papers were timely with a few things in my life:
 - I'd been prototyping some game ideas involving simulated agent populations and emergent behavior with my kid, and the second paper does exactly that
 - I'd been looking for a reason to try Clerk[^clerk], a Clojure visual notebook tool
 - It was performance review time at work
 
-So I committed to reproducing the paper's findings in Clojure and its tables/figures (plus new ones) using Clerk.
-
-> {: .highlight }
-> This is a draft post. Clerk notebook and source code to follow.
+So I committed to reproducing the paper's findings in Clojure and its tables/figures (plus new ones) using Clerk:
+- Clojure source: <https://github.com/taylorwood/low-doers>
+- Clerk notebooks: [fundamentals](/low-doers/notebooks/fundamentals/index.html) and [figures](/low-doers/index.html)
 
 ## The phenomenon
 
 **Professionally, have you ever felt like your hard work wasn't furthering your career, or even irritating some colleagues?
-Ever thought maybe things would be easier if you coasted a bit?
+Ever thought things might be easier if you coasted a bit?
 Maybe you needn't even feel bad about it if your peers had the same mindset.**
 
 >The dissonance is reduced by interacting always with the same people, whom one can trust for not challenging one’s standards. L-doers segregate themselves in mutual admiration societies.
@@ -45,16 +44,16 @@ And later in the _LL game_:
 
 >**There seems to be two forces that could contrast our supposed natural inclinations to L-ness and promote quality, one is the passion for a job well-done, the intrinsic pleasure found in employing and testing one’s skills at some task; the other is competition, succeeding at which carries extrinsic rewards**. Generically, these forces fail if the algebraic sum of rewards and punishments for H-ness is lower than the sum of rewards and punishments for L-ness. Even **H-prone individuals are ultimately driven to choose L (or to become eccentric and isolated ‘perfectionists’ or to migrate) if they systematically fail to gain any reward from their effort**. In short, L spreads if it pays off. This remains a tautology, however, unless we can understand the conditions that affect the relative payoffs of H and L.
 
-I recommend reading the _LL game_ just for the examples of different H/L exchanges, their psychosocial underpinnings, and the colorful Italian anecdotes[^anecdotes].
+I recommend reading the paper just for the examples of different H/L exchanges, their psychosocial underpinnings, and the colorful Italian anecdotes[^anecdotes].
 
 _Social Norms and Low-Doers_ takes these ideas further with social agent simulation in NetLogo[^netlogo-wiki].
-After modeling the social corrosion of L-worlds, it tests different regimes of rewards/sanctions to foster high-quality exchange:
+After modeling the social decay of L-worlds, it tests different regimes of rewards/sanctions to foster high-quality exchange:
 
 >Social norms play a fundamental role in holding groups together. The rationale behind most of them is to coordinate individual actions into a beneficial societal outcome. However, **there are cases where pro-social behavior within a community seems, to the contrary, to cause inefficiencies and suboptimal collective outcomes**. An explanation for this is that **individuals in a society are of different types and their type determines the norm of fairness they adopt**. Not all such norms are bound to be beneficial at the societal level. When individuals of different types meet **a clash of norms can arise. This, in turn, can determine an advantage for the "wrong" type**. We show this by a game-theoretic analysis in a very simple setting. To test this result – as well as its possible remedies – we also devise a specific simulation model. Our model is written in NETLOGO and is a first attempt to study our problem within an artificial environment that simulates the evolution of a society over time.
 
 ## The game
 
-A society of agents that collaborate with each other, accumulate payoffs, age, retire, and get replaced by new hires over time. Their collaborations are simply a mutual exchange of abstract "goods":
+A society of agents that collaborate with each other, accumulate payoffs, age, retire, and get replaced by new hires over time. Their collaborations consist of a simple mutual exchange of abstract "goods":
 
 >Assume for simplicity that goods can be produced at two levels of quality, High (H) and Low (L).
 >H is both more rewarding to receive and more costly to produce than L;
@@ -72,8 +71,8 @@ The four possible outcomes from any agent's perspective:
 | L   | L    | Lazy slop from both                      |
 
 Every agent has a *type*, which describes their ranking of preferred outcomes, e.g. HH > HL > LH > LL.
-All orderings of those four outcomes yield 24 possible types in all, each classifiable along two axes:
-a type is *selfish* when free-riding (LH) is its top choice, and *high-minded* when it ranks mutual-high (HH) above mutual-low (LL).
+All preference orderings of those four outcomes become 24 possible agent types in all, each classifiable along two axes: *selfishness* and *mindedness*.
+A type is *selfish* when free-riding (LH) is its top choice, and *high-minded* when it ranks mutual-high (HH) above mutual-low (LL).
 
 <details markdown="1">
 <summary>All 24 types</summary>
@@ -107,12 +106,12 @@ a type is *selfish* when free-riding (LH) is its top choice, and *high-minded* w
 
 </details>
 <br>
-Proietti & Franco focus on two canonical types to start. Both are *selfish* (their top preference is giving L and receiving H) but they differ in their *mindedness* (which they'd prefer if selfishness isn't on the table.)
+Proietti & Franco focus on two types to start: hs1 and ls1. Both are *selfish* (their top preference is giving L and receiving H) but they differ in their *mindedness* (which they'd prefer if selfishness isn't on the table.)
 
 - **hs1** (high-minded) prefers mutual-high (HH) over mutual-low (LL). Starts out playing H.
 - **ls1** (low-minded) prefers mutual-low (LL) over mutual-high (HH). Starts out playing L.
 
->Such agents are arguably likely to be found in a competitive society where individuals are incentivized to participate in many activities (for example improving their CV by publishing, teaching, participating to conferences and research projects) while at the same time economizing their efforts and getting the most out of them.
+> Such agents are arguably likely to be found in a competitive society where individuals are incentivized to participate in many activities (for example improving their CV by publishing, teaching, participating to conferences and research projects) while at the same time economizing their efforts and getting the most out of them.
 
 Payoffs follow the preference ordering:
 
@@ -125,7 +124,8 @@ Agents can reconsider their strategy after an exchange. Each agent tracks two ru
 
 When the shortfall crosses a threshold, a negative balance triggers a switch in the agent's baseline strategy.
 
-The asymmetry for the hs1 vs ls1 collaborations is in their opening play: hs1 starts at H and can fall short, but ls1 starts at L and in an LL exchange *already earns its second-best outcome*.
+The asymmetry for the hs1 vs ls1 collaborations is apparent from the opening play:
+hs1 starts at H and can fall short, but ls1 starts at L and in an LL exchange *already earns its second-best outcome*.
 
 <details>
 <summary>Exchange sequence diagram</summary>
@@ -224,51 +224,52 @@ The `decide` function implements the *reconsider* rule: an agent plays its basel
 The `reward-tick?` branch is used later: when a reward/sanction regime is active, the expected reward/sanction differential (`rb`) is added to the balance before the switch test.
 
 I think it's important to note, as in the paper, the experiments below are conducted on a *fully-connected* network of agents and each connection has a probability of collaboration.
-Obviously this doesn't accurately reflect many organizations that may be more hierarchical or siloed. To that end they also model _scale-free_ networks where agents have fewer connections, and they find those conditions more favorable for hs1.
+Obviously this modeling approach doesn't reflect more hierarchical or siloed organizational structures.
+To that end they also model _scale-free_ networks where agents have fewer connections and find those conditions more favorable for hs1.
 
 ## The outcomes
 
-Given a society of 20 agents hired evenly from hs1 and ls1: H actions begin around 20% of exchanges, then collapse to a ~9% steady state within the first decade or two and hold there across 1,500 simulated years.
+Given a society of 20 agents hired evenly from hs1/ls1, H actions begin around 20% of exchanges, then collapse to a ~9% steady state within the first decade or two and remain there for 1,500 simulated years.
 
-{% include figure.html src="/img/low-doers/fig1-h-collapse.png" caption="Over 1,500 years (time axis is log-scale to show early collapse and the long flat tail.) Faint blue lines are each RNG seed's 5-year rolling mean; bold blue line is all-seed median." %}
+{% include figure.html src="/img/low-doers/fig1-h-collapse.png" caption="Time axis is log-scale to show early collapse and the long flat tail. Faint blue lines are each RNG seed's 5-year rolling mean; bold blue line is all-seed median." %}
 
 ### Career churn
 
-The churn driving that collapse shows up in the career tenures and retirement reasons, by type.
-Plotting tenure-at-retirement, hs1 (left) piles up at short tenures while ls1 (right) generally lasts longer.
+The agent turnover driving that collapse shows up in the agent career tenures and retirement reasons.
+Plotting tenure-at-retirement, hs1 (left) piles up on the short end while ls1 (right) generally lasts longer.
 
-{% include figure.html src="/img/low-doers/tenure-pyramid.svg" caption="hs1 (high-minded, left) clusters at short tenures; ls1 (low-minded, right) lasts longer." %}
+{% include figure.html src="/img/low-doers/tenure-pyramid.svg" %}
 
-Splitting the same records by *why* each agent left is more telling. hs1 dominates the early-retirement side (bottom-% earners forced out under sustained low payoffs), while agents that survive to the mandatory retirement age reach it at similar tenures regardless of type. ls1's longer careers come from rarely capitulating, not from outlasting hs1 once it does.
+hs1 dominates the early-retirement side (bottom-% earners forced out under sustained low payoffs), while agents that survive to the mandatory retirement age reach it at similar tenures regardless of type.
+ls1's longer careers come from rarely capitulating to H, not from outlasting hs1 once it does.
 
 {% include figure.html src="/img/low-doers/retirement-reason.svg" caption="Left: early exits driven by low cumulative payoff (hs1-heavy). Right: agents that reached the mandatory retirement age (both types, similar tenures)." %}
 
 ### Robustness
 
-The paper's finding holds across society sizes and strategy-change thresholds. ([See original: 4.3](https://www.jasss.org/21/1/6.html#4.3))
+The paper's finding holds across different simulation parameters for society sizes and strategy-change thresholds. ([See original: 4.3](https://www.jasss.org/21/1/6.html#4.3))
 
 {% include figure.html src="/img/low-doers/fig2-society-size.svg" caption="H-action rate after 1,500 years across a range of society sizes and change-of-strategy thresholds (15% quantile retirement)." %}
 
 {% include figure.html src="/img/low-doers/payoff-table-t4.svg" caption="Table 4: adjusted payoffs. hs1's LL jumps to 8 vs ls1's 7." %}
 
-Table 4 breaks that asymmetry by raising hs1's LL payoff _above_ ls1's, so an hs1 stuck in mutual-low no longer trails its partner as it does under normal payoffs, yet the simulated outcome is mostly the same. ([See original: 4.7](https://www.jasss.org/21/1/6.html#4.7))
+Table 4 breaks that asymmetry by raising hs1's LL payoff _above_ ls1's, so an hs1 stuck in mutual-low no longer trails its partner as it does under normal payoffs, yet the simulated outcome is largely unchanged. ([See original: 4.7](https://www.jasss.org/21/1/6.html#4.7))
 
-{% include figure.html src="/img/low-doers/fig3-payoff-distances.svg" caption="Raising hs1's LL payoff above ls1's (Table 4) breaks the asymmetry that promotes low-doer dominance, yet ls1 still dominates." %}
+{% include figure.html src="/img/low-doers/fig3-payoff-distances.svg" caption="Raising hs1's LL payoff above ls1's (Table 4) breaks the payoff asymmetry that promotes low-doer dominance, yet ls1 still dominates." %}
 
 ## What can be done?
 
 The paper tests two basic strategies for preventing the collapse into low-quality exchanges:
-1. Change *who you hire* (the society's composition)
-2. Change *their incentives* (rewards for HH, sanctions for LL)
+1. Change *who* you hire: the society's composition of H vs L, selfish and non-selfish
+2. Change their *incentives*: rewards for HH exchanges and sanctions for LL
 
 ### Hiring filters
 
-The first lever is the mix of agent types in the society.
-The obvious move, hiring more hs1 agents, slows the decline but doesn't stop it. ([See original: 4.10](https://www.jasss.org/21/1/6.html#4.10))
+The first lever is the mix of agent types in the society. ([See original: 4.10](https://www.jasss.org/21/1/6.html#4.10))
 
-{% include figure.html src="/img/low-doers/fig4-hiring-policy.svg" caption="Even at 70–90% hs1, the H-rate declines with network size, across change-of-strategy thresholds." %}
+{% include figure.html src="/img/low-doers/fig4-hiring-policy.svg" caption="Even at 70–90% hs1, the H-rate declines with network size, across multiple change-of-strategy thresholds." %}
 
-As the paper notes:
+Unsurprisingly, hiring more hs1 agents helps, but as the paper notes:
 
 >Furthermore, it is quite challenging for a policy maker or employer to succeed in hiring such a high percentage of high-minded individuals.
 
@@ -284,11 +285,11 @@ Both types resist the capitulation mechanism entirely:
 since they always play H regardless, their shortfall/balance never push them to capitulate.
 Swap hs1 for either and the H-rate hovers around 50%.
 
+> Under such conditions, the efficiency of an institution can be sustained if high-minded people are not selfish, we may call them "heroes" or "saints".
+
 {% include figure.html src="/img/low-doers/hero-saint.png" caption="Change the type, not the count: hs1 collapses to ~9%, while hn1/hn2 hold near 50%." %}
 
->Under such conditions, the efficiency of an institution can be sustained if high-minded people are not selfish, we may call them "heroes" or "saints".
-
-While reliably hiring heroes (hn1) and saints (hn2) would evidently be more effective than hiring 70-90% high-minded, selfish agents (hs1), it is similarly challenging for most organizations. Mathematically, they cannot all "hire only the best."
+Reliably hiring a smaller contingent of heroes (hn1) and saints (hn2) may be more effective than hiring mostly high-minded, selfish agents (hs1), but it is similarly challenging for most organizations; mathematically, we can't *all* work "the best of the best."
 
 ### Rewards & Sanctions
 
@@ -298,22 +299,24 @@ As it turns out, rewarding HH exchanges has little effect, but sanctioning LL ex
 
 Frequency also matters: sanctions every round push H-rates above 65%, while sanctions every three rounds barely help at all. Sanctioning LL is what helps. Frequent sanctions help more (bottom-left), and hiring more hs1 pushes the effect toward ~90% (bottom-right). 
 
-{% include figure.html src="/img/low-doers/rewards-sanctions.svg" caption="Rewards and sanctions (the paper's Tables 5-8).<br>Each panel plots the steady-state H-rate against LL-sanction strength; colour is the HH-reward, which barely matters. Top row sanctions every third year (f=3), bottom row every year (f=1); left column hires 50% hs1, right column 65%. Error bars are 95% CI over 5 seeds." %}
+{% include figure.html src="/img/low-doers/rewards-sanctions.svg" caption="Rewards and sanctions (the paper's Tables 5-8).<br>Each panel plots the steady-state H-rate against LL-sanction strength; color is the HH-reward. Top row sanctions every third year (f=3), bottom row every year (f=1); left column hires 50% hs1, right column 65%. Error bars are 95% CI over 5 seeds." %}
 
 Sanctions only fire when an agent is in range of a reconsideration, so the more hs1 agents you start with, the more often the penalty has something to penalize.
 Hiring 65% hs1 lifts the baseline and reduces the sanction-frequency impact, recovering much of the sanction benefit even at the every-three-years cadence where 50/50 hiring collapses.
 
-With selective hiring and balanced incentives, the H-rate climbs to ~90% (the most effective policy tested in the paper.)
+With selective hiring and balanced incentives, the H-rate climbs to ~90% (which is the most effective policy tested in the paper.)
 
 ## Takeaways
 
 These papers model societies/organizations that tend toward an equilibrium where low effort becomes _pro-social behavior_ despite the undesirable outcomes.
 They contend "cartels of mediocrity" form against those offering higher quality exchanges.
 
-To my mind, the big insight is that pro-social conformists and disillusioned try-hards (not free-riders) are the true drivers of decay: agents who'd genuinely prefer mutual excellence get captured by a social norm, "rationally" capitulating once sufficiently exploited.
+To my mind, the top insight is that pro-social conformists and disillusioned try-hards (not free-riders) are the true drivers of decay: agents who'd genuinely prefer mutual excellence get captured by a social norm, "rationally" capitulating once sufficiently exploited.
 The high-minded burn out earlier and churn, and are replaced with new hires, keeping the organization flush with new subjects.
 
-My advice to anyone finding themselves in scenarios resembling the ones above is to **take pride in doing high-quality work even if peers do not!**
+The secondary insight would be that sanctions on low-quality work are *far* more effective than rewards for high-quality work.
+
+My suggestion when faced with organizational dynamics like these is to **take pride in doing high-quality work even if peers do not!**
 (But also, work within your means[^picasso]. Don't sacrifice your sanity and burn out.)
 
 <br>
