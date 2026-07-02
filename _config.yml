@@ -6,7 +6,8 @@ url: "https://blog.taylorwood.io" # the base hostname & protocol for your site
 github_username: taylorwood
 linkedin_username: taylorhwood
 linkedin_name: Taylor Wood
-stackoverflow_username: taylorwood
+stackoverflow_url: https://stackoverflow.com/users/8746216/taylor-wood
+bsky_username: taylorwood.io
 
 # Build settings
 markdown: kramdown
